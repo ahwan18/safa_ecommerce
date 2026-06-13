@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Header } from '@/components/header'
@@ -327,23 +327,6 @@ export default function PesananSayaPage() {
     setTimeout(() => setToast(null), 3000)
   }
 
-  if (!isLoading && !isAuthenticated) {
-    router.replace('/login')
-    return null
-  }
-
-  if (isLoading) {
-    return (
-      <>
-        <Header />
-        <div className="min-h-screen flex items-center justify-center">
-          <p className="text-muted-foreground animate-pulse">Memuat...</p>
-        </div>
-        <Footer />
-      </>
-    )
-  }
-
   const myOrders = useMemo(
     () => orders
       .filter(o => String(o.userId) === String(user?.id))
@@ -364,6 +347,28 @@ export default function PesananSayaPage() {
     }
     return list
   }, [myOrders, filterStatus, search])
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace('/login?redirect=/pesanan-saya')
+    }
+  }, [isAuthenticated, isLoading, router])
+
+  if (!isLoading && !isAuthenticated) {
+    return null
+  }
+
+  if (isLoading) {
+    return (
+      <>
+        <Header />
+        <div className="min-h-screen flex items-center justify-center">
+          <p className="text-muted-foreground animate-pulse">Memuat...</p>
+        </div>
+        <Footer />
+      </>
+    )
+  }
 
   const tabs = [
     { key: 'all',        label: 'Semua',              count: myOrders.length },

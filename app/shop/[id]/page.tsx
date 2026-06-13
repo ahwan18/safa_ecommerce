@@ -8,11 +8,13 @@ import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
 import { useProducts } from '@/lib/contexts/product-context'
 import { useCart } from '@/lib/contexts/cart-context'
+import { useAuth } from '@/lib/contexts/auth-context'
 import { useReviews } from '@/lib/contexts/review-context'
 import { ReviewSection } from '@/components/review/review-section'
 import { WhatsAppInlineButton } from '@/components/whatsapp-button'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import type { CartItem } from '@/lib/types'
 
 interface ProductDetailPageProps {
   params: Promise<{ id: string }>
@@ -27,8 +29,9 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   const stats = product ? getProductStats(product.id) : { avg: 0, count: 0 }
 
   const [quantity, setQuantity] = useState(1)
-  const [selectedMethod, setSelectedMethod] = useState('sablon') // lebih aman
+  const [selectedMethod, setSelectedMethod] = useState<CartItem['selectedMethod']>('sablon')
   const { addItem } = useCart()
+  const { isAuthenticated } = useAuth()
   const router = useRouter()
 
   if (!product) {
@@ -49,6 +52,10 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   }
 
   const handleAddToCart = () => {
+    if (!isAuthenticated) {
+      router.push('/login?redirect=/cart')
+      return
+    }
     addItem(product, quantity, selectedMethod)
     router.push('/cart')
   }

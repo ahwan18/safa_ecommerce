@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Product } from '@/lib/types'
 import { useCart } from '@/lib/contexts/cart-context'
+import { useAuth } from '@/lib/contexts/auth-context'
 import { useReviews } from '@/lib/contexts/review-context'
 
 interface ProductCardProps {
@@ -14,6 +15,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart()
+  const { isAuthenticated } = useAuth()
   const { getProductStats } = useReviews()
   const router = useRouter()
   const [added, setAdded] = useState(false)
@@ -24,6 +26,10 @@ export function ProductCard({ product }: ProductCardProps) {
 
   function addToCart() {
     if (isOutOfStock) return
+    if (!isAuthenticated) {
+      router.push('/login?redirect=/cart')
+      return
+    }
     addItem(product, 1, defaultMethod)
     setAdded(true)
     setTimeout(() => setAdded(false), 2000)
@@ -39,6 +45,10 @@ export function ProductCard({ product }: ProductCardProps) {
     e.preventDefault()
     e.stopPropagation()
     if (isOutOfStock) return
+    if (!isAuthenticated) {
+      router.push('/login?redirect=/checkout')
+      return
+    }
     addItem(product, 1, defaultMethod)
     router.push('/checkout')
   }

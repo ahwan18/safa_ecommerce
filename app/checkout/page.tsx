@@ -43,11 +43,17 @@ export default function CheckoutPage() {
   const { items, clearCart } = useCart()
   const { addOrder } = useOrders()
   const { products, updateProduct } = useProducts()
-  const { user } = useAuth()
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const { addNotification } = useNotifications()
   const { getUserAddresses, addAddress } = useAddresses()
   const { originCity } = useShippingConfig()
   const router = useRouter()
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.replace('/login?redirect=/checkout')
+    }
+  }, [authLoading, isAuthenticated, router])
 
   const userId = user?.id?.toString() ?? ''
   const savedAddresses = getUserAddresses(userId)
@@ -204,6 +210,18 @@ export default function CheckoutPage() {
     { key: 'review', label: 'Konfirmasi' },
   ]
   const stepIndex = steps.findIndex(s => s.key === step)
+
+  if (authLoading || !isAuthenticated) {
+    return (
+      <>
+        <Header />
+        <div className="min-h-screen flex items-center justify-center">
+          <p className="text-muted-foreground">Memuat...</p>
+        </div>
+        <Footer />
+      </>
+    )
+  }
 
   if (cartItems.length === 0) {
     return (

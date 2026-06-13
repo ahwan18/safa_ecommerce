@@ -45,7 +45,7 @@ export function Header() {
 
           {/* Navigation */}
           <nav className="flex items-center gap-8">
-            <a
+            <Link
               href="/#home"
               className="
                 text-sm font-medium
@@ -55,9 +55,9 @@ export function Header() {
               "
             >
               Home
-            </a>
+            </Link>
 
-            <a
+            <Link
               href="/#shop"
               className="
                 text-sm font-medium
@@ -67,9 +67,9 @@ export function Header() {
               "
             >
               Shop
-            </a>
+            </Link>
 
-            <a
+            <Link
               href="/#contact"
               className="
                 text-sm font-medium
@@ -79,7 +79,7 @@ export function Header() {
               "
             >
               Contact
-            </a>
+            </Link>
 
           </nav>
 
@@ -87,7 +87,7 @@ export function Header() {
           <div className="flex items-center gap-3">
 
             {/* Cart */}
-            <Link href="/cart" className="relative">
+            <Link href={isAuthenticated ? '/cart' : '/login?redirect=/cart'} className="relative">
               <Button variant="ghost" size="icon" className="rounded-full hover:bg-secondary/60 transition">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m10 0l2 9m-12-9h14M17 6h2m-2 3h2" />
