@@ -25,13 +25,12 @@ SELECT u.id, NULL, 'Jl. Ahmad Yani No. 75', 'Bandung', 'Jawa Barat', '40123', 'p
 FROM users u WHERE u.email = 'personal@example.com' AND NOT EXISTS (SELECT 1 FROM customer_profiles WHERE user_id = u.id);
 
 -- Add sample orders
-INSERT INTO orders (order_number, user_id, total_price, shipping_cost, discount_amount, final_price, status, payment_status, payment_method, shipping_address, customer_name, customer_phone, customer_email, notes)
+INSERT INTO orders (order_number, user_id, total_price, shipping_cost, final_price, status, payment_status, payment_method, shipping_address, customer_name, customer_phone, customer_email, notes)
 SELECT 
   'ORD-' || TO_CHAR(CURRENT_TIMESTAMP, 'YYYYMMDDHH24MISS') || '-' || FLOOR(RANDOM() * 1000),
   (SELECT id FROM users WHERE email = 'customer@example.com'),
   450000,
   30000,
-  45000,
   435000,
   'delivered',
   'paid',
@@ -77,20 +76,20 @@ UPDATE products SET specifications = jsonb_build_object(
 ) WHERE slug = 'tote-bag-sablon';
 
 -- Insert additional pricing tiers for specific products
-INSERT INTO pricing_config (product_id, min_quantity, max_quantity, price_per_unit, discount_percentage)
-SELECT id, 1, 9, 45000, 0 FROM products WHERE slug = 'kaos-sablon-premium'
+INSERT INTO pricing_config (product_id, min_quantity, max_quantity, price_per_unit)
+SELECT id, 1, 9, 45000 FROM products WHERE slug = 'kaos-sablon-premium'
 UNION ALL
-SELECT id, 10, 49, 42000, 7 FROM products WHERE slug = 'kaos-sablon-premium'
+SELECT id, 10, 49, 42000 FROM products WHERE slug = 'kaos-sablon-premium'
 UNION ALL
-SELECT id, 50, 99, 40000, 12 FROM products WHERE slug = 'kaos-sablon-premium'
+SELECT id, 50, 99, 40000 FROM products WHERE slug = 'kaos-sablon-premium'
 UNION ALL
-SELECT id, 100, 500, 38000, 16 FROM products WHERE slug = 'kaos-sablon-premium'
+SELECT id, 100, 500, 38000 FROM products WHERE slug = 'kaos-sablon-premium'
 UNION ALL
-SELECT id, 1, 9, 85000, 0 FROM products WHERE slug = 'hoodie-custom-dtf'
+SELECT id, 1, 9, 85000 FROM products WHERE slug = 'hoodie-custom-dtf'
 UNION ALL
-SELECT id, 10, 49, 79000, 7 FROM products WHERE slug = 'hoodie-custom-dtf'
+SELECT id, 10, 49, 79000 FROM products WHERE slug = 'hoodie-custom-dtf'
 UNION ALL
-SELECT id, 50, 99, 76000, 11 FROM products WHERE slug = 'hoodie-custom-dtf'
+SELECT id, 50, 99, 76000 FROM products WHERE slug = 'hoodie-custom-dtf'
 ON CONFLICT DO NOTHING;
 
 -- Sample audit log entry

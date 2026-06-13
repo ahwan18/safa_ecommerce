@@ -5,10 +5,9 @@ interface OrderRow {
   id: number
   order_number: string
   user_id: string | null
-  subtotal: number | string | null
+  total_price: number | string | null
   shipping_cost: number | string | null
-  discount_amount: number | string | null
-  total: number | string
+  final_price: number | string
   status: string
   payment_status: string
   payment_method: string | null
@@ -43,10 +42,13 @@ function rowToOrder(row: OrderRow): Order {
     orderNumber: row.order_number,
     userId: String(row.user_id ?? ''),
     items,
-    subtotal: Number(row.subtotal ?? items.reduce((s, i) => s + i.price * i.quantity, 0)),
+    subtotal: Number(
+      row.total_price ??
+      items.reduce((s, i) => s + i.price * i.quantity, 0)
+    ),
     shippingCost: Number(row.shipping_cost ?? 0),
     shippingInfo: row.shipping_info ?? undefined,
-    total: Number(row.total),
+    total: Number(row.final_price),
     status: row.status as Order['status'],
     paymentStatus: row.payment_status as Order['paymentStatus'],
     shippingAddress: (row.shipping_address ?? {}) as Address,
@@ -60,10 +62,9 @@ function orderToInsert(order: Partial<Order>) {
   return {
     order_number: order.orderNumber,
     user_id: order.userId || null,
-    subtotal: order.subtotal ?? order.items?.reduce((s, i) => s + (i.price || 0) * (i.quantity || 0), 0),
+    total_price: order.subtotal ?? order.items?.reduce((s, i) => s + (i.price || 0) * (i.quantity || 0), 0),
     shipping_cost: order.shippingCost ?? 0,
-    discount_amount: 0,
-    total: order.total ?? 0,
+    final_price: order.total ?? 0,
     status: order.status ?? 'pending',
     payment_status: order.paymentStatus ?? 'pending',
     payment_method: (order.items && order.items.length > 0) ? undefined : undefined,
@@ -142,7 +143,7 @@ export const updateOrderById = async (id: string, updates: Partial<Order>): Prom
   const updateData: any = {}
   if (updates.status !== undefined) updateData.status = updates.status
   if (updates.paymentStatus !== undefined) updateData.payment_status = updates.paymentStatus
-  if (updates.total !== undefined) updateData.total = updates.total
+  if (updates.total !== undefined) updateData.final_price = updates.total
   if (updates.shippingCost !== undefined) updateData.shipping_cost = updates.shippingCost
   if (updates.notes !== undefined) updateData.notes = updates.notes
   if (updates.shippingAddress !== undefined) updateData.shipping_address = updates.shippingAddress

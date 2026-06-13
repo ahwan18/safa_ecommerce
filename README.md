@@ -85,6 +85,7 @@ Edit konten website:
 - **Rush Order**: Biaya pesanan cepat
 - **Minimum Order**: Nilai minimal pesanan
 - **Discount**: Kode promo dan persentase diskon
+<!-- Discount/promo removed -->
 
 ### Analytics (`/admin/analytics`)
 - Total revenue, orders, customers, avg order value

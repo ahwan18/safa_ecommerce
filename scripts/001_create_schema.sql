@@ -77,7 +77,6 @@ CREATE TABLE IF NOT EXISTS orders (
   user_id INTEGER NOT NULL,
   total_price DECIMAL(12, 2) NOT NULL,
   shipping_cost DECIMAL(10, 2) DEFAULT 0,
-  discount_amount DECIMAL(10, 2) DEFAULT 0,
   final_price DECIMAL(12, 2) NOT NULL,
   status VARCHAR(50) NOT NULL DEFAULT 'pending', -- 'pending', 'processing', 'ready', 'shipped', 'delivered'
   payment_status VARCHAR(50) NOT NULL DEFAULT 'unpaid', -- 'unpaid', 'paid', 'refunded'
@@ -113,28 +112,12 @@ CREATE TABLE IF NOT EXISTS pricing_config (
   min_quantity INTEGER,
   max_quantity INTEGER,
   price_per_unit DECIMAL(10, 2),
-  discount_percentage DECIMAL(5, 2) DEFAULT 0,
   rush_fee_percentage DECIMAL(5, 2) DEFAULT 0,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 );
 
--- 8. Discount codes table
-CREATE TABLE IF NOT EXISTS discount_codes (
-  id SERIAL PRIMARY KEY,
-  code VARCHAR(50) NOT NULL UNIQUE,
-  description VARCHAR(255),
-  discount_type VARCHAR(50) NOT NULL, -- 'percentage', 'fixed'
-  discount_value DECIMAL(10, 2) NOT NULL,
-  min_order_amount DECIMAL(10, 2) DEFAULT 0,
-  max_usage INTEGER,
-  used_count INTEGER DEFAULT 0,
-  is_active BOOLEAN DEFAULT TRUE,
-  valid_from TIMESTAMP,
-  valid_until TIMESTAMP,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
 
 -- 9. CMS content table
 CREATE TABLE IF NOT EXISTS cms_content (
@@ -168,7 +151,7 @@ CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
 CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
-CREATE INDEX IF NOT EXISTS idx_discount_codes_code ON discount_codes(code);
+-- (discount_codes table removed)
 CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
 
 -- Insert default admin user (password: admin123 - bcrypt hash)
@@ -205,18 +188,14 @@ VALUES
 ON CONFLICT (section_name) DO NOTHING;
 
 -- Insert shipping costs configuration
-INSERT INTO pricing_config (min_quantity, max_quantity, price_per_unit, discount_percentage)
+INSERT INTO pricing_config (min_quantity, max_quantity, price_per_unit)
 VALUES 
-  (1, 9, 0, 0),
-  (10, 49, 0, 5),
-  (50, 99, 0, 10),
-  (100, 199, 0, 15),
-  (200, 999, 0, 20),
-  (1000, 999999, 0, 25);
+  (1, 9, 0),
+  (10, 49, 0),
+  (50, 99, 0),
+  (100, 199, 0),
+  (200, 999, 0),
+  (1000, 999999, 0);
 
 -- Insert sample discount codes
-INSERT INTO discount_codes (code, description, discount_type, discount_value, min_order_amount, max_usage, is_active, valid_from, valid_until)
-VALUES
-  ('WELCOME10', 'Diskon 10% untuk pelanggan baru', 'percentage', 10, 100000, 100, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '30 days'),
-  ('BULK20', 'Diskon 20% untuk pembelian dalam jumlah besar', 'percentage', 20, 500000, NULL, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '90 days'),
-  ('HEMAT50K', 'Potongan Rp 50.000 untuk pembelian di atas Rp 500.000', 'fixed', 50000, 500000, 50, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '60 days');
+-- sample discount codes removed

@@ -71,7 +71,7 @@ Complete user management system for ScreenStudio e-commerce platform with suppor
 
 - **Settings** (`/admin/settings`)
   - Configure pricing
-  - Manage discount codes
+  - (removed) Manage discount codes
   - Set shipping costs
   - System configuration
 
@@ -135,7 +135,7 @@ After login, access admin panel:
 5. **orders** - Customer orders
 6. **order_items** - Individual items in orders
 7. **pricing_config** - Bulk pricing tiers
-8. **discount_codes** - Promotional codes
+8. **discount_codes** - (removed) Promotional codes were removed from the system
 9. **cms_content** - Website content management
 10. **audit_logs** - System activity tracking
 

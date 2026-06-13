@@ -64,14 +64,7 @@ export default function AdminSettingsPage() {
   }
 
   // ── Promo state ───────────────────────────────────────────────────────────
-  const [settings, setSettings] = useState({
-    discountCode: 'WELCOME10',
-    discountPercent: 10,
-    minOrderAmount: 100000,
-  })
-  const [promoSaved, setPromoSaved] = useState(false)
   const [originSaved, setOriginSaved] = useState(false)
-  const handleSavePromo = () => { setPromoSaved(true); setTimeout(() => setPromoSaved(false), 2000) }
   const handleSaveOrigin = () => {
     if (!originCity) return
     setOriginSaved(true)
@@ -132,59 +125,7 @@ export default function AdminSettingsPage() {
                 </div>
               </Card>
 
-              {/* Discount & Promo */}
-              <Card className="p-8 border border-border">
-                <h2 className="text-2xl font-bold text-foreground mb-6">Diskon & Promo</h2>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Kode Diskon
-                    </label>
-                    <Input
-                      value={settings.discountCode}
-                      onChange={(e) => setSettings({ ...settings, discountCode: e.target.value.toUpperCase() })}
-                      placeholder="WELCOME10"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Persentase Diskon (%)
-                    </label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={settings.discountPercent}
-                        onChange={(e) => setSettings({ ...settings, discountPercent: parseInt(e.target.value) })}
-                      />
-                      <span className="flex items-center px-3 py-2 bg-muted text-foreground rounded-md border border-border">
-                        %
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="p-4 bg-muted/20 rounded-lg">
-                    <p className="text-sm text-foreground/70 mb-2">
-                      <span className="font-medium">Kode Promo:</span> {settings.discountCode}
-                    </p>
-                    <p className="text-sm text-foreground/70">
-                      <span className="font-medium">Diskon:</span> {settings.discountPercent}%
-                    </p>
-                  </div>
-
-                  {promoSaved && (
-                    <div className="p-3 bg-green-100 border border-green-300 rounded-lg text-green-800 text-sm font-medium">
-                      ✓ Promo berhasil diupdate
-                    </div>
-                  )}
-
-                  <Button onClick={handleSavePromo} size="lg" className="w-full">
-                    Simpan Promo
-                  </Button>
-                </div>
-              </Card>
+              {/* Discount & Promo removed */}
             </div>
 
             {/* WhatsApp Configuration */}
