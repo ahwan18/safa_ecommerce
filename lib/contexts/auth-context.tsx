@@ -10,6 +10,11 @@ import {
   getAdminLoginEmail,
   setAdminLoginEmail,
 } from '@/lib/auth/password-store'
+import {
+  loginAdminWithDatabase,
+  updateAdminEmailInDatabase,
+  updateAdminPasswordInDatabase,
+} from '@/lib/supabase/admin-auth-queries'
 
 
 interface AuthContextType {
@@ -17,6 +22,7 @@ interface AuthContextType {
   user: User | null
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
+  loginAdmin: (email: string, password: string) => Promise<void>
   loginWithGoogle: () => Promise<void>
   register: (email: string, password: string, fullName: string, role?: 'customer' | 'admin') => Promise<void>
   logout: () => void
@@ -28,6 +34,7 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const ADMIN_DB_TOKEN_PREFIX = 'admin_db:'
 
 function sessionFromSupabaseUser(supaUser: {
   id: string
@@ -39,7 +46,7 @@ function sessionFromSupabaseUser(supaUser: {
     id: supaUser.id,
     email: supaUser.email ?? '',
     fullName: supaUser.user_metadata?.full_name ?? supaUser.user_metadata?.name ?? supaUser.email?.split('@')[0] ?? 'Pengguna',
-    role: supaUser.user_metadata?.role || 'customer',
+    role: 'customer',
     status: 'active',
     createdAt: new Date(supaUser.created_at ?? Date.now()),
     updatedAt: new Date(),
@@ -62,6 +69,12 @@ function loadStoredSession() {
     ...parsedSession,
     isAdmin: parsedSession.user?.role === 'admin',
   } as AuthSession
+}
+
+function getAdminDatabaseSessionToken(session: AuthSession) {
+  return session.user?.role === 'admin' && session.token?.startsWith(ADMIN_DB_TOKEN_PREFIX)
+    ? session.token.slice(ADMIN_DB_TOKEN_PREFIX.length)
+    : null
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -221,7 +234,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Email atau password salah')
       }
 
-      const { password: _, ...userWithoutPassword } = mockUser
+      const userWithoutPassword = { ...mockUser }
+      delete (userWithoutPassword as Partial<typeof mockUser>).password
       if (resolvedEmail === 'admin@screenstudio.com' && email === adminLoginEmail && adminLoginEmail !== resolvedEmail) {
         userWithoutPassword.email = adminLoginEmail
       }
@@ -237,6 +251,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       syncSessionCookie(newSession)
     } catch (error) {
       throw error
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const loginAdmin = async (email: string, password: string) => {
+    if (!isSupabaseConfigured) {
+      throw new Error('Login admin membutuhkan koneksi Supabase database. Isi NEXT_PUBLIC_SUPABASE_URL dan NEXT_PUBLIC_SUPABASE_ANON_KEY.')
+    }
+
+    setIsLoading(true)
+    try {
+      const { user, sessionToken } = await loginAdminWithDatabase(email, password)
+      const newSession: AuthSession = {
+        user,
+        isLoggedIn: true,
+        isAdmin: true,
+        token: `${ADMIN_DB_TOKEN_PREFIX}${sessionToken}`,
+      }
+      setSession(newSession)
+      localStorage.setItem('auth_session', JSON.stringify(newSession))
+      syncSessionCookie(newSession)
     } finally {
       setIsLoading(false)
     }
@@ -337,6 +373,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!session.user) {
       throw new Error('Sesi tidak ditemukan. Silakan login kembali.')
     }
+    if (!currentPassword.trim()) {
+      throw new Error('Password lama wajib diisi')
+    }
+    if (newPassword.length < 6) {
+      throw new Error('Password baru minimal 6 karakter')
+    }
+    if (newPassword === currentPassword) {
+      throw new Error('Password baru harus berbeda dari password lama')
+    }
+
+    const adminSessionToken = getAdminDatabaseSessionToken(session)
+    if (adminSessionToken) {
+      await updateAdminPasswordInDatabase(adminSessionToken, currentPassword, newPassword)
+      return
+    }
 
     const email = session.user.email
     const stored = getStoredPassword(email)
@@ -347,13 +398,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (currentPassword !== stored) {
       throw new Error('Password lama tidak sesuai')
     }
-    if (newPassword.length < 6) {
-      throw new Error('Password baru minimal 6 karakter')
-    }
-    if (newPassword === currentPassword) {
-      throw new Error('Password baru harus berbeda dari password lama')
-    }
-
     setStoredPassword(email, newPassword)
   }
 
@@ -376,6 +420,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error('Email baru sama dengan email saat ini')
     }
 
+    const adminSessionToken = getAdminDatabaseSessionToken(session)
+    if (adminSessionToken) {
+      const updatedUser = await updateAdminEmailInDatabase(adminSessionToken, trimmed)
+      setSession({ ...session, user: updatedUser })
+      return
+    }
+
     const oldEmail = session.user.email
     migrateStoredPassword(oldEmail, trimmed)
     setAdminLoginEmail(trimmed)
@@ -389,6 +440,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user: session.user || null,
         isLoading,
         login,
+        loginAdmin,
         loginWithGoogle,
         register,
         logout,

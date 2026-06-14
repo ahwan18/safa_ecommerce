@@ -1,10 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { AdminSidebar } from '@/components/admin/sidebar'
-import { AdminProtectedLayout } from '@/components/admin/protected-layout'
 import { useReviews } from '@/lib/contexts/review-context'
 import { Card } from '@/components/ui/card'
+import { AdminPageHeader } from '@/components/admin/ui'
 
 function Stars({ rating }: { rating: number }) {
   return (
@@ -46,17 +45,12 @@ export default function AdminReviewsPage() {
   }
 
   return (
-    <AdminProtectedLayout>
-      <div className="flex h-screen overflow-hidden">
-        <AdminSidebar />
-        <div className="flex-1 bg-background overflow-y-auto">
-          <div className="p-8">
+    <>
 
-            {/* Header */}
-            <div className="mb-8">
-              <h1 className="text-4xl font-bold text-foreground">Ulasan</h1>
-              <p className="text-muted-foreground mt-2">Moderasi dan kelola ulasan pelanggan</p>
-            </div>
+            <AdminPageHeader
+              title="Ulasan"
+              description="Moderasi ulasan pelanggan, jaga kualitas testimoni, dan pantau rating toko."
+            />
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -195,9 +189,6 @@ export default function AdminReviewsPage() {
               </Card>
             )}
 
-          </div>
-        </div>
-      </div>
-    </AdminProtectedLayout>
+    </>
   )
 }

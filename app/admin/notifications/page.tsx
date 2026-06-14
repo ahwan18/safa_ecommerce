@@ -2,11 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { AdminSidebar } from '@/components/admin/sidebar'
-import { AdminProtectedLayout } from '@/components/admin/protected-layout'
 import { useNotifications } from '@/lib/contexts/notification-context'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { AdminPageHeader } from '@/components/admin/ui'
 import type { AppNotification, NotificationType } from '@/lib/types'
 
 const TYPE_LABEL: Record<NotificationType, string> = {
@@ -66,23 +65,13 @@ export default function AdminNotificationsPage() {
   ] as const
 
   return (
-    <AdminProtectedLayout>
-      <div className="flex h-screen overflow-hidden">
-        <AdminSidebar />
-        <div className="flex-1 bg-background overflow-y-auto">
-          <div className="p-8">
+    <>
 
-            {/* Header */}
-            <div className="flex items-start justify-between mb-8">
-              <div>
-                <h1 className="text-4xl font-bold text-foreground">Notifikasi</h1>
-                <p className="text-muted-foreground mt-2">
-                  {unread > 0
-                    ? `${unread} notifikasi belum dibaca`
-                    : 'Semua notifikasi sudah dibaca'}
-                </p>
-              </div>
-              <div className="flex gap-3">
+            <AdminPageHeader
+              title="Notifikasi"
+              description={unread > 0 ? `${unread} notifikasi belum dibaca` : 'Semua notifikasi sudah dibaca'}
+              actions={
+                <>
                 {unread > 0 && (
                   <Button
                     variant="outline"
@@ -102,8 +91,9 @@ export default function AdminNotificationsPage() {
                     Hapus Semua
                   </Button>
                 )}
-              </div>
-            </div>
+                </>
+              }
+            />
 
             {/* Filter tabs */}
             <div className="flex gap-2 mb-6 border-b border-border overflow-x-auto pb-px">
@@ -205,9 +195,6 @@ export default function AdminNotificationsPage() {
               </p>
             )}
 
-          </div>
-        </div>
-      </div>
-    </AdminProtectedLayout>
+    </>
   )
 }

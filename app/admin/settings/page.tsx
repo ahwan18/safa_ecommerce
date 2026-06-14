@@ -1,15 +1,26 @@
 'use client'
 
-import { useState } from 'react'
-import { AdminSidebar } from '@/components/admin/sidebar'
-import { AdminProtectedLayout } from '@/components/admin/protected-layout'
+import { useState, type ReactNode } from 'react'
 import { useWAConfig } from '@/lib/contexts/wa-config-context'
 import { useCMS } from '@/lib/contexts/cms-context'
 import { useShippingConfig } from '@/lib/contexts/shipping-config-context'
 import { DestinationSearch } from '@/components/checkout/destination-search'
-import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { AdminPageHeader, AdminPanel, AdminPanelHeader } from '@/components/admin/ui'
+import {
+  AlertCircle,
+  Check,
+  CreditCard,
+  ExternalLink,
+  Info,
+  Loader2,
+  MapPin,
+  MessageCircle,
+  Save,
+  Truck,
+  type LucideIcon,
+} from 'lucide-react'
 
 export default function AdminSettingsPage() {
   const { waNumber, setWaNumber } = useWAConfig()
@@ -71,268 +82,364 @@ export default function AdminSettingsPage() {
     setTimeout(() => setOriginSaved(false), 2000)
   }
 
+  const cleanWa = waInput.replace(/\D/g, '')
+
   return (
-    <AdminProtectedLayout>
-      <div className="flex h-screen overflow-hidden">
-        <AdminSidebar />
-        <div className="flex-1 bg-background overflow-y-auto">
-          <div className="p-8">
-            <div className="mb-8">
-              <h1 className="text-4xl font-bold text-foreground">Pengaturan</h1>
-              <p className="text-muted-foreground mt-2">Kelola pengiriman, diskon, dan konfigurasi lainnya</p>
-            </div>
+    <div className="space-y-6">
+      <AdminPageHeader
+        title="Pengaturan"
+        description="Kelola konfigurasi yang berpengaruh langsung ke checkout, kontak pelanggan, dan informasi toko."
+        meta="Konfigurasi operasional"
+      />
 
-            <div className="grid lg:grid-cols-2 gap-8">
-              {/* Raja Ongkir */}
-              <Card className="p-8 border border-border">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-lg">🚚</div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <SettingOverviewItem
+          icon={Truck}
+          label="Pengiriman"
+          value={originCity ? originCity.label : 'Belum dipilih'}
+          tone="amber"
+        />
+        <SettingOverviewItem
+          icon={MessageCircle}
+          label="WhatsApp"
+          value={cleanWa ? `+${cleanWa}` : 'Belum diatur'}
+          tone="emerald"
+        />
+        <SettingOverviewItem
+          icon={MapPin}
+          label="Lokasi"
+          value={locForm.address || 'Belum diatur'}
+          tone="cyan"
+        />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="space-y-6">
+          <AdminPanel className="overflow-hidden">
+            <AdminPanelHeader
+              title="Pengiriman"
+              description="Lokasi asal dipakai untuk menghitung ongkir otomatis saat checkout."
+              action={<SectionIcon icon={Truck} tone="amber" />}
+            />
+            <div className="space-y-5 p-5">
+              <DestinationSearch
+                label="Kota / Kecamatan Asal Toko"
+                placeholder="Cari kota asal pengiriman..."
+                value={originCity}
+                onChange={setOriginCity}
+                helperText="Pilih lokasi gudang atau toko yang menjadi titik awal pengiriman."
+              />
+
+              {originCity && (
+                <div className="grid gap-3 rounded-lg border border-amber-100 bg-amber-50/70 p-4 text-sm text-amber-950 sm:grid-cols-2">
                   <div>
-                    <h2 className="text-2xl font-bold text-foreground">Pengiriman (Raja Ongkir)</h2>
-                    <p className="text-sm text-muted-foreground">Ongkir dihitung otomatis saat checkout</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.08em] text-amber-700">Asal saat ini</p>
+                    <p className="mt-1 font-bold">{originCity.label}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.08em] text-amber-700">ID Raja Ongkir</p>
+                    <p className="mt-1 font-mono font-bold">{originCity.id}</p>
                   </div>
                 </div>
-                <div className="space-y-4">
-                  <DestinationSearch
-                    label="Kota / Kecamatan Asal Toko"
-                    placeholder="Cari kota asal pengiriman..."
-                    value={originCity}
-                    onChange={setOriginCity}
-                    helperText="Lokasi ini dipakai sebagai asal perhitungan ongkir ke pelanggan"
-                  />
+              )}
 
-                  {originCity && (
-                    <div className="p-4 bg-muted/20 rounded-lg text-sm text-foreground/70">
-                      <p><span className="font-medium">Asal saat ini:</span> {originCity.label}</p>
-                      <p className="mt-1"><span className="font-medium">ID Raja Ongkir:</span> {originCity.id}</p>
-                    </div>
-                  )}
+              <Notice tone="blue" icon={Info}>
+                Tambahkan <code className="rounded bg-white/80 px-1.5 py-0.5 font-mono">RAJAONGKIR_API_KEY</code> di file{' '}
+                <code className="rounded bg-white/80 px-1.5 py-0.5 font-mono">.env.local</code>, lalu restart server dev.
+              </Notice>
 
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
-                    <p className="font-semibold mb-1">API Key Raja Ongkir</p>
-                    <p>Tambahkan <code className="bg-white/70 px-1 rounded">RAJAONGKIR_API_KEY</code> di file <code className="bg-white/70 px-1 rounded">.env.local</code>, lalu restart server dev.</p>
-                  </div>
+              {originSaved && (
+                <Notice tone="green" icon={Check}>
+                  Kota asal pengiriman tersimpan.
+                </Notice>
+              )}
 
-                  {originSaved && (
-                    <div className="p-3 bg-green-100 border border-green-300 rounded-lg text-green-800 text-sm font-medium">
-                      ✓ Kota asal pengiriman tersimpan
-                    </div>
-                  )}
-
-                  <Button onClick={handleSaveOrigin} size="lg" className="w-full" disabled={!originCity}>
-                    Simpan Kota Asal
-                  </Button>
-                </div>
-              </Card>
-
-              {/* Discount & Promo removed */}
-            </div>
-
-            {/* WhatsApp Configuration */}
-            <Card className="p-8 border border-border col-span-full lg:col-span-2">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#f0fdf4' }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="#25d366">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-foreground">Nomor WhatsApp</h2>
-                  <p className="text-sm text-muted-foreground">Nomor ini digunakan untuk semua tombol "Chat via WhatsApp" di website</p>
-                </div>
-              </div>
-
-              <div className="max-w-md space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Nomor WhatsApp Admin
-                  </label>
-                  <div className="flex gap-2">
-                    <div className="flex items-center px-3 py-2 bg-muted text-foreground rounded-l-md border border-border border-r-0 text-sm font-medium select-none">
-                      +
-                    </div>
-                    <Input
-                      value={waInput}
-                      onChange={e => {
-                        setWaInput(e.target.value.replace(/[^\d]/g, ''))
-                        setWaError('')
-                      }}
-                      placeholder="6281234567890"
-                      inputMode="numeric"
-                      className="rounded-l-none font-mono"
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1.5">
-                    Format internasional tanpa + (contoh: <span className="font-mono">6281234567890</span>)
-                  </p>
-                  {waError && (
-                    <p className="text-xs text-destructive mt-1.5 flex items-center gap-1">
-                      <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
-                      </svg>
-                      {waError}
-                    </p>
-                  )}
-                </div>
-
-                {/* Preview link */}
-                {waInput.replace(/\D/g, '').length >= 10 && (
-                  <div className="p-3 bg-muted/30 rounded-lg border border-border">
-                    <p className="text-xs text-muted-foreground mb-1">Preview link:</p>
-                    <p className="text-xs font-mono text-foreground/70 break-all">
-                      https://wa.me/{waInput.replace(/\D/g, '')}
-                    </p>
-                  </div>
-                )}
-
-                {waSaved && (
-                  <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm font-medium">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
-                    </svg>
-                    Nomor WhatsApp berhasil disimpan
-                  </div>
-                )}
-
-                <Button onClick={handleSaveWA} className="gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
-                  </svg>
-                  Simpan Nomor WhatsApp
+              <div className="flex justify-end">
+                <Button onClick={handleSaveOrigin} disabled={!originCity} className="gap-2">
+                  <Save className="h-4 w-4" />
+                  Simpan Kota Asal
                 </Button>
               </div>
-            </Card>
-            <div className="grid lg:grid-cols-2 gap-8 mt-8">
-              {/* Location Configuration */}
-              <Card className="p-8 border border-border lg:col-span-2">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    </svg>
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-foreground">Lokasi & Peta</h2>
-                    <p className="text-sm text-muted-foreground">Tampil di section "Hubungi Kami" pada halaman utama</p>
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-6">
-                  {/* Left: form */}
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
-                        Alamat Lengkap <span className="text-destructive">*</span>
-                      </label>
-                      <Input
-                        value={locForm.address}
-                        onChange={e => setLocForm(p => ({ ...p, address: e.target.value }))}
-                        placeholder="Jl. Merdeka No. 123, Kelurahan, Kecamatan, Kota"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
-                        URL Google Maps Embed
-                      </label>
-                      <textarea
-                        value={locForm.mapsEmbed}
-                        onChange={e => setLocForm(p => ({ ...p, mapsEmbed: e.target.value }))}
-                        rows={4}
-                        placeholder="https://www.google.com/maps/embed?pb=..."
-                        className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none font-mono"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Google Maps → Bagikan → Sematkan Peta → salin URL dari atribut <code className="bg-muted px-1 rounded">src</code>
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
-                        Link "Lihat di Google Maps"
-                      </label>
-                      <Input
-                        value={locForm.mapsLink}
-                        onChange={e => setLocForm(p => ({ ...p, mapsLink: e.target.value }))}
-                        placeholder="https://maps.google.com/?q=..."
-                      />
-                    </div>
-
-                    {locError && (
-                      <p className="text-xs text-destructive flex items-center gap-1">
-                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
-                        {locError}
-                      </p>
-                    )}
-
-                    {locSaved && (
-                      <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm font-medium">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/></svg>
-                        Lokasi berhasil disimpan dan tampil di halaman website
-                      </div>
-                    )}
-
-                    <Button onClick={handleSaveLoc} disabled={locSaving} className="gap-2 w-full">
-                      {locSaving ? (
-                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                        </svg>
-                      ) : (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
-                        </svg>
-                      )}
-                      {locSaving ? 'Menyimpan...' : 'Simpan Lokasi'}
-                    </Button>
-                  </div>
-
-                  {/* Right: preview */}
-                  <div>
-                    <p className="text-sm font-medium text-foreground mb-2">Preview Peta</p>
-                    {locForm.mapsEmbed ? (
-                      <div className="rounded-xl overflow-hidden border border-border">
-                        <iframe
-                          src={locForm.mapsEmbed}
-                          width="100%"
-                          height="280"
-                          style={{ border: 0, display: 'block' }}
-                          allowFullScreen
-                          loading="lazy"
-                          referrerPolicy="no-referrer-when-downgrade"
-                          title="Preview peta"
-                        />
-                        {locForm.address && (
-                          <div className="px-3 py-2 bg-muted/30 border-t border-border text-xs text-muted-foreground truncate">
-                            📍 {locForm.address}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="h-[280px] rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground gap-2">
-                        <svg className="w-10 h-10 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
-                        </svg>
-                        <p className="text-sm">Masukkan URL Maps Embed untuk melihat preview</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="p-8 border border-border">
-                <h3 className="font-bold text-foreground mb-4">▲ Metode Pembayaran</h3>
-                <div className="space-y-2 text-sm text-foreground/70">
-                  <p>✓ Transfer Bank</p>
-                  <p>✓ Kartu Kredit</p>
-                  <p>✓ E-Wallet</p>
-                </div>
-              </Card>
             </div>
-          </div>
+          </AdminPanel>
+
+          <AdminPanel className="overflow-hidden">
+            <AdminPanelHeader
+              title="Lokasi & Peta"
+              description="Informasi ini tampil di section Hubungi Kami pada halaman utama."
+              action={<SectionIcon icon={MapPin} tone="cyan" />}
+            />
+            <div className="grid gap-6 p-5 lg:grid-cols-[minmax(0,1fr)_420px]">
+              <div className="space-y-4">
+                <Field label="Alamat Lengkap" required>
+                  <Input
+                    value={locForm.address}
+                    onChange={e => setLocForm(p => ({ ...p, address: e.target.value }))}
+                    placeholder="Jl. Merdeka No. 123, Kelurahan, Kecamatan, Kota"
+                  />
+                </Field>
+
+                <Field label="URL Google Maps Embed">
+                  <textarea
+                    value={locForm.mapsEmbed}
+                    onChange={e => setLocForm(p => ({ ...p, mapsEmbed: e.target.value }))}
+                    rows={4}
+                    placeholder="https://www.google.com/maps/embed?pb=..."
+                    className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-mono text-slate-900 outline-none transition focus:border-cyan-300 focus:ring-4 focus:ring-cyan-100"
+                  />
+                  <p className="mt-1.5 text-xs text-slate-500">
+                    Google Maps, Bagikan, Sematkan Peta, lalu salin URL dari atribut <code className="rounded bg-slate-100 px-1">src</code>.
+                  </p>
+                </Field>
+
+                <Field label='Link "Lihat di Google Maps"'>
+                  <Input
+                    value={locForm.mapsLink}
+                    onChange={e => setLocForm(p => ({ ...p, mapsLink: e.target.value }))}
+                    placeholder="https://maps.google.com/?q=..."
+                  />
+                </Field>
+
+                {locError && (
+                  <Notice tone="red" icon={AlertCircle}>
+                    {locError}
+                  </Notice>
+                )}
+
+                {locSaved && (
+                  <Notice tone="green" icon={Check}>
+                    Lokasi berhasil disimpan dan tampil di halaman website.
+                  </Notice>
+                )}
+
+                <div className="flex justify-end">
+                  <Button onClick={handleSaveLoc} disabled={locSaving} className="gap-2">
+                    {locSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    {locSaving ? 'Menyimpan...' : 'Simpan Lokasi'}
+                  </Button>
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <p className="text-sm font-bold text-slate-900">Preview Peta</p>
+                  {locForm.mapsLink && (
+                    <a
+                      href={locForm.mapsLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-bold text-cyan-700 no-underline hover:text-cyan-900"
+                    >
+                      Buka maps
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  )}
+                </div>
+                {locForm.mapsEmbed ? (
+                  <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                    <iframe
+                      src={locForm.mapsEmbed}
+                      width="100%"
+                      height="300"
+                      style={{ border: 0, display: 'block' }}
+                      allowFullScreen
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title="Preview peta"
+                    />
+                    {locForm.address && (
+                      <div className="flex items-start gap-2 border-t border-slate-100 bg-slate-50 px-3 py-3 text-xs text-slate-600">
+                        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-700" />
+                        <span className="line-clamp-2">{locForm.address}</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex h-[300px] flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 text-center text-slate-500">
+                    <MapPin className="h-9 w-9 text-slate-300" />
+                    <p className="max-w-xs text-sm">Masukkan URL Maps Embed untuk menampilkan preview lokasi toko.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </AdminPanel>
+        </div>
+
+        <aside className="space-y-6">
+          <AdminPanel className="overflow-hidden">
+            <AdminPanelHeader
+              title="Kontak WhatsApp"
+              description="Dipakai oleh tombol chat di website."
+              action={<SectionIcon icon={MessageCircle} tone="emerald" />}
+            />
+            <div className="space-y-4 p-5">
+              <Field label="Nomor WhatsApp Admin">
+                <div className="flex">
+                  <div className="grid h-10 w-11 place-items-center rounded-l-lg border border-r-0 border-slate-200 bg-slate-50 text-sm font-bold text-slate-600">
+                    +
+                  </div>
+                  <Input
+                    value={waInput}
+                    onChange={e => {
+                      setWaInput(e.target.value.replace(/[^\d]/g, ''))
+                      setWaError('')
+                    }}
+                    placeholder="6281234567890"
+                    inputMode="numeric"
+                    className="rounded-l-none font-mono"
+                  />
+                </div>
+                <p className="mt-1.5 text-xs text-slate-500">
+                  Format internasional tanpa plus, contoh <span className="font-mono">6281234567890</span>.
+                </p>
+              </Field>
+
+              {cleanWa.length >= 10 && (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <p className="text-xs font-bold uppercase tracking-[0.08em] text-slate-500">Preview link</p>
+                  <p className="mt-1 break-all font-mono text-xs text-slate-700">https://wa.me/{cleanWa}</p>
+                </div>
+              )}
+
+              {waError && (
+                <Notice tone="red" icon={AlertCircle}>
+                  {waError}
+                </Notice>
+              )}
+
+              {waSaved && (
+                <Notice tone="green" icon={Check}>
+                  Nomor WhatsApp berhasil disimpan.
+                </Notice>
+              )}
+
+              <Button onClick={handleSaveWA} className="w-full gap-2">
+                <Save className="h-4 w-4" />
+                Simpan Nomor WhatsApp
+              </Button>
+            </div>
+          </AdminPanel>
+
+          <AdminPanel className="overflow-hidden">
+            <AdminPanelHeader
+              title="Metode Pembayaran"
+              description="Metode yang aktif untuk pelanggan."
+              action={<SectionIcon icon={CreditCard} tone="slate" />}
+            />
+            <div className="space-y-3 p-5">
+              {['Transfer Bank', 'Kartu Kredit', 'E-Wallet'].map(method => (
+                <div key={method} className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-3">
+                  <div className="flex items-center gap-3">
+                    <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-700">
+                      <Check className="h-4 w-4" />
+                    </span>
+                    <span className="text-sm font-bold text-slate-900">{method}</span>
+                  </div>
+                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                    Aktif
+                  </span>
+                </div>
+              ))}
+            </div>
+          </AdminPanel>
+        </aside>
+      </div>
+    </div>
+  )
+}
+
+function SettingOverviewItem({
+  icon: Icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: LucideIcon
+  label: string
+  value: string
+  tone: 'amber' | 'emerald' | 'cyan'
+}) {
+  const tones = {
+    amber: 'bg-amber-50 text-amber-700 border-amber-100',
+    emerald: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+    cyan: 'bg-cyan-50 text-cyan-700 border-cyan-100',
+  }
+
+  return (
+    <AdminPanel className="p-4">
+      <div className="flex items-start gap-3">
+        <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg border ${tones[tone]}`}>
+          <Icon className="h-5 w-5" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-xs font-bold uppercase tracking-[0.08em] text-slate-500">{label}</p>
+          <p className="mt-1 truncate text-sm font-black text-slate-950">{value}</p>
         </div>
       </div>
-    </AdminProtectedLayout>
+    </AdminPanel>
+  )
+}
+
+function SectionIcon({
+  icon: Icon,
+  tone,
+}: {
+  icon: LucideIcon
+  tone: 'amber' | 'emerald' | 'cyan' | 'slate'
+}) {
+  const tones = {
+    amber: 'bg-amber-50 text-amber-700 border-amber-100',
+    emerald: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+    cyan: 'bg-cyan-50 text-cyan-700 border-cyan-100',
+    slate: 'bg-slate-100 text-slate-700 border-slate-200',
+  }
+
+  return (
+    <span className={`grid h-9 w-9 place-items-center rounded-lg border ${tones[tone]}`}>
+      <Icon className="h-4 w-4" />
+    </span>
+  )
+}
+
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string
+  required?: boolean
+  children: ReactNode
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-bold text-slate-900">
+        {label}
+        {required && <span className="text-rose-600"> *</span>}
+      </span>
+      {children}
+    </label>
+  )
+}
+
+function Notice({
+  tone,
+  icon: Icon,
+  children,
+}: {
+  tone: 'blue' | 'green' | 'red'
+  icon: LucideIcon
+  children: ReactNode
+}) {
+  const tones = {
+    blue: 'border-cyan-200 bg-cyan-50 text-cyan-800',
+    green: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    red: 'border-rose-200 bg-rose-50 text-rose-700',
+  }
+
+  return (
+    <div className={`flex items-start gap-2 rounded-lg border p-3 text-sm font-medium ${tones[tone]}`}>
+      <Icon className="mt-0.5 h-4 w-4 shrink-0" />
+      <div className="min-w-0 leading-6">{children}</div>
+    </div>
   )
 }

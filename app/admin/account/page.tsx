@@ -1,12 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { AdminSidebar } from '@/components/admin/sidebar'
-import { AdminProtectedLayout } from '@/components/admin/protected-layout'
 import { useAuth } from '@/lib/contexts/auth-context'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { AdminPageHeader } from '@/components/admin/ui'
 
 function NoticeBanner({ type, message }: { type: 'success' | 'error'; message: string }) {
   return (
@@ -187,17 +186,11 @@ export default function AdminAccountPage() {
   }
 
   return (
-    <AdminProtectedLayout>
-      <div className="flex h-screen overflow-hidden">
-        <AdminSidebar />
-        <div className="flex-1 bg-background overflow-y-auto">
-          <div className="p-4 sm:p-6 lg:p-8 max-w-4xl">
-            <div className="mb-6 sm:mb-8">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground">Akun Saya</h1>
-              <p className="text-muted-foreground mt-2 text-sm sm:text-base">
-                Kelola informasi akun admin yang sedang login
-              </p>
-            </div>
+    <div className="max-w-4xl">
+            <AdminPageHeader
+              title="Akun Saya"
+              description="Kelola identitas dan kredensial admin yang sedang login."
+            />
 
             <div className="space-y-6">
               {/* Account info */}
@@ -303,9 +296,6 @@ export default function AdminAccountPage() {
                 </form>
               </Card>
             </div>
-          </div>
-        </div>
-      </div>
-    </AdminProtectedLayout>
+    </div>
   )
 }

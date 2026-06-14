@@ -1,13 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { AdminSidebar } from '@/components/admin/sidebar'
-import { AdminProtectedLayout } from '@/components/admin/protected-layout'
 import { useCMS } from '@/lib/contexts/cms-context'
 import { DropZone } from '@/components/ui/drop-zone'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { AdminPageHeader } from '@/components/admin/ui'
 
 export default function AdminContentPage() {
   const { getContent, updateContent } = useCMS()
@@ -47,15 +46,11 @@ export default function AdminContentPage() {
   }
 
   return (
-    <AdminProtectedLayout>
-      <div className="flex h-screen overflow-hidden">
-        <AdminSidebar />
-        <div className="flex-1 bg-background overflow-y-auto">
-          <div className="p-8">
-            <div className="mb-8">
-              <h1 className="text-4xl font-bold text-foreground">Kelola Konten</h1>
-              <p className="text-muted-foreground mt-2">Edit konten website Anda</p>
-            </div>
+    <>
+            <AdminPageHeader
+              title="Kelola Konten"
+              description="Perbarui konten utama website agar landing page tetap relevan untuk pelanggan."
+            />
 
             {/* Tabs */}
             <div className="flex gap-2 mb-8 border-b border-border">
@@ -162,7 +157,7 @@ export default function AdminContentPage() {
                   <div>
                     <h3 className="font-bold text-foreground mb-4">Layanan yang Ditawarkan</h3>
                     <div className="space-y-4">
-                      {servicesContent?.items?.map((service: any, index: number) => (
+                      {servicesContent?.items?.map((service: any) => (
                         <div key={service.id} className="p-4 border border-border rounded-lg">
                           <div className="flex justify-between items-center mb-2">
                             <span className="font-medium text-foreground">{service.title}</span>
@@ -266,9 +261,6 @@ export default function AdminContentPage() {
                 </div>
               </Card>
             )}
-          </div>
-        </div>
-      </div>
-    </AdminProtectedLayout>
+    </>
   )
 }
