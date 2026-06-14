@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
-import { AdminSidebar } from '@/components/admin/sidebar'
-import { AdminProtectedLayout } from '@/components/admin/protected-layout'
+import { AdminPageHeader } from '@/components/admin/ui'
 import { exportToCSV } from '@/lib/utils/csv-export'
 
 interface MockUser {
@@ -180,19 +179,13 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <AdminProtectedLayout>
-      <div className="flex h-screen overflow-hidden bg-background">
-        <AdminSidebar />
-
-        <main className="flex-1 overflow-y-auto">
-        <div className="p-8">
+    <>
           <div className="mb-8">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h1 className="text-3xl font-bold text-foreground mb-2">Manajemen Pengguna</h1>
-                <p className="text-muted-foreground">Kelola pelanggan dan admin ScreenStudio</p>
-              </div>
-              <div className="flex gap-2">
+            <AdminPageHeader
+              title="Manajemen Pengguna"
+              description="Kelola pelanggan, admin, status akun, dan ekspor daftar pengguna."
+              actions={
+                <>
                 <Button onClick={handleExportCSV} variant="outline" className="flex items-center gap-2">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -202,8 +195,9 @@ export default function AdminUsersPage() {
                 <Button onClick={() => setShowForm(true)}>
                   + Tambah Pengguna
                 </Button>
-              </div>
-            </div>
+                </>
+              }
+            />
 
             {/* Search and Filter */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -375,9 +369,6 @@ export default function AdminUsersPage() {
           <p className="text-xs text-muted-foreground mt-4">
             Total: {filteredUsers.length} pengguna
           </p>
-        </div>
-        </main>
-      </div>
-    </AdminProtectedLayout>
+    </>
   )
 }

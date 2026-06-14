@@ -1,12 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { AdminSidebar } from '@/components/admin/sidebar'
-import { AdminProtectedLayout } from '@/components/admin/protected-layout'
 import { useOrders } from '@/lib/contexts/order-context'
 import { useNotifications, buildStatusNotif } from '@/lib/contexts/notification-context'
-import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { AdminEmptyState, AdminPageHeader, AdminPanel, AdminPanelHeader, AdminStatTile } from '@/components/admin/ui'
 import { exportToCSV } from '@/lib/utils/csv-export'
 
 const statusOptions = [
@@ -58,45 +56,47 @@ export default function AdminOrdersPage() {
   }
 
   const selectedOrderData = orders.find(o => o.id === selectedOrder)
+  const pendingCount = orders.filter(o => o.status === 'pending').length
+  const activeCount = orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length
+  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0)
 
   return (
-    <AdminProtectedLayout>
-      <div className="flex h-screen overflow-hidden">
-        <AdminSidebar />
-        <div className="flex-1 bg-background overflow-y-auto">
-          <div className="p-8">
-            <div className="mb-8">
-              <h1 className="text-4xl font-bold text-foreground">Pesanan</h1>
-              <p className="text-muted-foreground mt-2">Kelola dan lacak pesanan pelanggan</p>
-            </div>
+    <div className="space-y-6">
+      <AdminPageHeader
+        title="Pesanan"
+        description="Pantau pesanan masuk, ubah status, dan tindak lanjuti pengiriman dari satu ruang kerja."
+        actions={
+          <Button onClick={handleExportCSV} variant="outline" className="gap-2">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Export CSV
+          </Button>
+        }
+      />
 
-            <div className="grid lg:grid-cols-3 gap-8">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <AdminStatTile label="Total Pesanan" value={orders.length} hint="Semua status" tone="slate" />
+        <AdminStatTile label="Perlu Diproses" value={activeCount} hint={`${pendingCount} masih tertunda`} tone="orange" />
+        <AdminStatTile label="Nilai Pesanan" value={`Rp${totalRevenue.toLocaleString('id-ID')}`} hint="Akumulasi saat ini" tone="green" />
+      </div>
+
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
               {/* Orders List */}
-              <div className="lg:col-span-2">
-                <Card className="p-6 border border-border">
-                  <div className="mb-6 pb-6 border-b border-border flex justify-between items-center">
-                    <div>
-                      <h2 className="text-xl font-bold text-foreground">Daftar Pesanan</h2>
-                      <p className="text-xs text-muted-foreground mt-1">{orders.length} pesanan</p>
-                    </div>
-                    <Button onClick={handleExportCSV} variant="outline" size="sm" className="flex items-center gap-2">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                      Export
-                    </Button>
-                  </div>
+              <div>
+                <AdminPanel className="overflow-hidden">
+                  <AdminPanelHeader title="Daftar Pesanan" description={`${orders.length} pesanan tercatat`} />
 
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                  <div className="max-h-[620px] space-y-3 overflow-y-auto p-4">
                     {orders.length > 0 ? (
                       orders.map((order) => (
                         <button
                           key={order.id}
                           onClick={() => setSelectedOrder(order.id)}
-                          className={`w-full p-4 rounded-lg border-2 transition text-left ${
+                          className={`w-full rounded-lg border p-4 text-left transition ${
                             selectedOrder === order.id
-                              ? 'border-primary bg-primary/5'
-                              : 'border-border hover:border-primary/50'
+                              ? 'border-slate-950 bg-slate-50 shadow-sm'
+                              : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                           }`}
                         >
                           <div className="flex justify-between items-start mb-2">
@@ -121,18 +121,16 @@ export default function AdminOrdersPage() {
                         </button>
                       ))
                     ) : (
-                      <div className="text-center py-8">
-                        <p className="text-muted-foreground">Belum ada pesanan</p>
-                      </div>
+                      <AdminEmptyState title="Belum ada pesanan" description="Pesanan pelanggan akan muncul di sini." />
                     )}
                   </div>
-                </Card>
+                </AdminPanel>
               </div>
 
               {/* Order Details */}
               <div className="lg:col-span-1">
                 {selectedOrderData ? (
-                  <Card className="p-6 border border-border sticky top-8">
+                  <AdminPanel className="sticky top-4 p-5">
                     <h3 className="text-xl font-bold text-foreground mb-6">Detail Pesanan</h3>
 
                     <div className="space-y-4 mb-6 pb-6 border-b border-border">
@@ -185,17 +183,12 @@ export default function AdminOrdersPage() {
                     <Button className="w-full mt-6" size="sm">
                       Cetak Label Pengiriman
                     </Button>
-                  </Card>
+                  </AdminPanel>
                 ) : (
-                  <Card className="p-6 border border-border text-center">
-                    <p className="text-muted-foreground">Pilih pesanan untuk melihat detail</p>
-                  </Card>
+                  <AdminEmptyState title="Pilih pesanan" description="Detail, alamat, dan kontrol status akan tampil di sini." />
                 )}
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-    </AdminProtectedLayout>
+    </div>
   )
 }

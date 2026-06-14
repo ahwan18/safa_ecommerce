@@ -6,20 +6,14 @@ import { useAuth } from '@/lib/contexts/auth-context'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { getAdminLoginEmail } from '@/lib/auth/password-store'
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const { login, isAdmin } = useAuth()
+  const { loginAdmin, isAdmin } = useAuth()
   const router = useRouter()
-
-  useEffect(() => {
-    // Set default admin email
-    setEmail(getAdminLoginEmail())
-  }, [])
 
   useEffect(() => {
     if (isAdmin) {
@@ -46,10 +40,10 @@ const handleSubmit = async (e: React.FormEvent) => {
   }
 
   try {
-    await login(email, password)
+    await loginAdmin(email, password)
     router.push('/admin')
   } catch (err) {
-    setError('Email atau password salah. Silakan coba lagi.')
+    setError(err instanceof Error ? err.message : 'Email atau password salah. Silakan coba lagi.')
   } finally {
     setIsLoading(false)
   }
@@ -92,9 +86,6 @@ const handleSubmit = async (e: React.FormEvent) => {
               placeholder="Masukkan password"
               className="w-full"
             />
-            <p className="text-xs text-muted-foreground mt-2">
-              Password default: admin123
-            </p>
           </div>
 
           {error && (

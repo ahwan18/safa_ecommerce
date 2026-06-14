@@ -2,14 +2,13 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import { AdminSidebar } from '@/components/admin/sidebar'
-import { AdminProtectedLayout } from '@/components/admin/protected-layout'
 import { useProducts } from '@/lib/contexts/product-context'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DropZone } from '@/components/ui/drop-zone'
-import { exportToCSV, formatRupiah } from '@/lib/utils/csv-export'
+import { AdminPageHeader, AdminStatTile } from '@/components/admin/ui'
+import { exportToCSV } from '@/lib/utils/csv-export'
 
 const emptyForm = {
   id: '',
@@ -137,17 +136,12 @@ export default function AdminProductsPage() {
   }
 
   return (
-    <AdminProtectedLayout>
-      <div className="flex h-screen overflow-hidden">
-        <AdminSidebar />
-        <div className="flex-1 bg-background overflow-y-auto">
-          <div className="p-8">
-            <div className="flex justify-between items-center mb-8">
-              <div>
-                <h1 className="text-4xl font-bold text-foreground">Produk</h1>
-                <p className="text-muted-foreground mt-2">Kelola katalog produk Anda</p>
-              </div>
-              <div className="flex gap-2">
+    <div className="space-y-6">
+            <AdminPageHeader
+              title="Produk"
+              description="Kelola katalog, stok, gambar, dan harga produk yang tampil ke pelanggan."
+              actions={
+                <>
                 <Button onClick={handleExportCSV} variant="outline" className="flex items-center gap-2">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -157,7 +151,14 @@ export default function AdminProductsPage() {
                 <Button onClick={handleAddNew} className="px-6">
                   + Tambah Produk
                 </Button>
-              </div>
+                </>
+              }
+            />
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <AdminStatTile label="Total Produk" value={products.length} hint="Dalam katalog" />
+              <AdminStatTile label="Hasil Filter" value={filteredProducts.length} hint={categoryFilter === 'all' ? 'Semua kategori' : categoryFilter} tone="blue" />
+              <AdminStatTile label="Total Stok" value={products.reduce((sum, p) => sum + ((p as any).stock ?? 0), 0)} hint="Unit tersedia" tone="green" />
             </div>
 
             {/* Form */}
@@ -403,9 +404,6 @@ export default function AdminProductsPage() {
                 </table>
               </div>
             </Card>
-          </div>
-        </div>
-      </div>
-    </AdminProtectedLayout>
+    </div>
   )
 }
