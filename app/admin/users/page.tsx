@@ -1,14 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@/lib/contexts/auth-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
-import { Sidebar } from '@/components/admin/sidebar'
+import { AdminSidebar } from '@/components/admin/sidebar'
+import { AdminProtectedLayout } from '@/components/admin/protected-layout'
 import { exportToCSV } from '@/lib/utils/csv-export'
-import Link from 'next/link'
 
 interface MockUser {
   id: string | number
@@ -21,8 +19,6 @@ interface MockUser {
 }
 
 export default function AdminUsersPage() {
-  const router = useRouter()
-  const { user, isAuthenticated } = useAuth()
   const [users, setUsers] = useState<MockUser[]>([])
   const [filteredUsers, setFilteredUsers] = useState<MockUser[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -36,13 +32,6 @@ export default function AdminUsersPage() {
     role: 'customer' as 'customer' | 'admin',
     status: 'active' as 'active' | 'inactive' | 'suspended',
   })
-
-  // Check admin access
-  useEffect(() => {
-    if (!isAuthenticated || user?.role !== 'admin') {
-      router.push('/admin/login')
-    }
-  }, [isAuthenticated, user, router])
 
   // Mock users data
   useEffect(() => {
@@ -190,19 +179,12 @@ export default function AdminUsersPage() {
     })
   }
 
-  if (!user || user.role !== 'admin') {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground">Memuat...</p>
-      </div>
-    )
-  }
-
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar />
+    <AdminProtectedLayout>
+      <div className="flex h-screen overflow-hidden bg-background">
+        <AdminSidebar />
 
-      <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto">
         <div className="p-8">
           <div className="mb-8">
             <div className="flex justify-between items-center mb-6">
@@ -394,7 +376,8 @@ export default function AdminUsersPage() {
             Total: {filteredUsers.length} pengguna
           </p>
         </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </AdminProtectedLayout>
   )
 }

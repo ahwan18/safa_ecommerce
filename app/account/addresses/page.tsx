@@ -201,8 +201,13 @@ export default function AddressesPage() {
     return () => clearTimeout(t)
   }, [])
 
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.replace('/login?redirect=/account/addresses')
+    }
+  }, [authLoading, isAuthenticated, router])
+
   if (!authLoading && !isAuthenticated) {
-    router.replace('/login')
     return null
   }
 

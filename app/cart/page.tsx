@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -7,13 +8,33 @@ import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
 import { useCart } from '@/lib/contexts/cart-context'
 import { useProducts } from '@/lib/contexts/product-context'
+import { useAuth } from '@/lib/contexts/auth-context'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity } = useCart()
   const { products } = useProducts()
+  const { isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace('/login?redirect=/cart')
+    }
+  }, [isAuthenticated, isLoading, router])
+
+  if (isLoading || !isAuthenticated) {
+    return (
+      <>
+        <Header />
+        <main className="min-h-screen flex items-center justify-center bg-background">
+          <p className="text-muted-foreground">Memuat...</p>
+        </main>
+        <Footer />
+      </>
+    )
+  }
 
   const cartItems = items
     .map(item => ({ ...item, product: products.find(p => p.id === item.productId) }))

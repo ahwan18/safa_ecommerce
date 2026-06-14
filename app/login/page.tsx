@@ -10,6 +10,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 
+function getSafeRedirect(fallback: string) {
+  const redirect = new URLSearchParams(window.location.search).get('redirect')
+  if (!redirect || !redirect.startsWith('/') || redirect.startsWith('//')) {
+    return fallback
+  }
+  return redirect
+}
+
 export default function LoginPage() {
   const router = useRouter()
   const { login, loginWithGoogle, isLoading } = useAuth()
@@ -49,7 +57,7 @@ export default function LoginPage() {
 
     try {
       await login(formData.email, formData.password)
-      router.push('/account')
+      router.push(getSafeRedirect('/account'))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login gagal')
     }

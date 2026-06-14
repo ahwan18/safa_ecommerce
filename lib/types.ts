@@ -158,9 +158,9 @@ export interface Review {
 // CMS Content Types
 export interface CMSContent {
   id: string
-  section: 'hero' | 'services' | 'about' | 'contact'
+  section_name: 'hero' | 'services' | 'about' | 'contact' | 'pricing'
   content: Record<string, any>
-  updatedAt: Date
+  updated_at?: string
 }
 
 // Admin Analytics Types

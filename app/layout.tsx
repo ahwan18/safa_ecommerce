@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { CartProvider } from '@/lib/contexts/cart-context'
 import { OrderProvider } from '@/lib/contexts/order-context'
@@ -12,9 +11,6 @@ import { AddressProvider } from '@/lib/contexts/address-context'
 import { WAConfigProvider } from '@/lib/contexts/wa-config-context'
 import { ShippingConfigProvider } from '@/lib/contexts/shipping-config-context'
 import './globals.css'
-
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: 'ScreenStudio - Sablon Profesional',

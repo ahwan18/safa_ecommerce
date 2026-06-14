@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import type { User, AuthSession } from '@/lib/types'
-import { supabase } from '@/lib/supabase/client'
+import { isSupabaseConfigured, supabase } from '@/lib/supabase/client'
 import {
   getStoredPassword,
   setStoredPassword,
@@ -29,6 +29,41 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+function sessionFromSupabaseUser(supaUser: {
+  id: string
+  email?: string
+  user_metadata?: Record<string, any>
+  created_at?: string
+}, token?: string): AuthSession {
+  const appUser: User = {
+    id: supaUser.id,
+    email: supaUser.email ?? '',
+    fullName: supaUser.user_metadata?.full_name ?? supaUser.user_metadata?.name ?? supaUser.email?.split('@')[0] ?? 'Pengguna',
+    role: supaUser.user_metadata?.role || 'customer',
+    status: 'active',
+    createdAt: new Date(supaUser.created_at ?? Date.now()),
+    updatedAt: new Date(),
+  }
+
+  return {
+    user: appUser,
+    isLoggedIn: true,
+    isAdmin: appUser.role === 'admin',
+    token,
+  }
+}
+
+function loadStoredSession() {
+  const stored = localStorage.getItem('auth_session')
+  if (!stored) return null
+
+  const parsedSession = JSON.parse(stored)
+  return {
+    ...parsedSession,
+    isAdmin: parsedSession.user?.role === 'admin',
+  } as AuthSession
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<AuthSession>({
     user: null,
@@ -41,27 +76,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true
 
+    if (!isSupabaseConfigured) {
+      try {
+        const hydratedSession = loadStoredSession()
+        if (hydratedSession) {
+          setSession(hydratedSession)
+          syncSessionCookie(hydratedSession)
+        }
+      } catch (e) {
+        console.error('Failed to parse session:', e)
+      } finally {
+        setIsLoading(false)
+      }
+
+      return () => {
+        mounted = false
+      }
+    }
+
     // Get initial Supabase session (in case of OAuth redirect or persistent session)
     supabase.auth.getSession().then(({ data: { session: supaSession } }) => {
       if (!mounted) return
 
       if (supaSession?.user) {
-        const supaUser = supaSession.user
-        const appUser: User = {
-          id: supaUser.id,
-          email: supaUser.email ?? '',
-          fullName: supaUser.user_metadata?.full_name ?? supaUser.user_metadata?.name ?? supaUser.email?.split('@')[0] ?? 'Pengguna',
-          role: supaUser.user_metadata?.role || 'customer',
-          status: 'active',
-          createdAt: new Date(supaUser.created_at),
-          updatedAt: new Date(),
-        }
-        const newSession: AuthSession = {
-          user: appUser,
-          isLoggedIn: true,
-          isAdmin: appUser.role === 'admin',
-          token: supaSession.access_token,
-        }
+        const newSession = sessionFromSupabaseUser(supaSession.user, supaSession.access_token)
         setSession(newSession)
         localStorage.setItem('auth_session', JSON.stringify(newSession))
         syncSessionCookie(newSession)
@@ -70,19 +108,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Fall back to localStorage session (email/password mock login)
-      const stored = localStorage.getItem('auth_session')
-      if (stored) {
-        try {
-          const parsedSession = JSON.parse(stored)
-          const hydratedSession = {
-            ...parsedSession,
-            isAdmin: parsedSession.user?.role === 'admin',
-          }
+      try {
+        const hydratedSession = loadStoredSession()
+        if (hydratedSession) {
           setSession(hydratedSession)
           syncSessionCookie(hydratedSession)
-        } catch (e) {
-          console.error('Failed to parse session:', e)
         }
+      } catch (e) {
+        console.error('Failed to parse session:', e)
       }
       setIsLoading(false)
     })
@@ -92,22 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!mounted) return
 
       if (supaSession?.user) {
-        const supaUser = supaSession.user
-        const appUser: User = {
-          id: supaUser.id,
-          email: supaUser.email ?? '',
-          fullName: supaUser.user_metadata?.full_name ?? supaUser.user_metadata?.name ?? supaUser.email?.split('@')[0] ?? 'Pengguna',
-          role: supaUser.user_metadata?.role || 'customer',
-          status: 'active',
-          createdAt: new Date(supaUser.created_at),
-          updatedAt: new Date(),
-        }
-        const newSession: AuthSession = {
-          user: appUser,
-          isLoggedIn: true,
-          isAdmin: appUser.role === 'admin',
-          token: supaSession.access_token,
-        }
+        const newSession = sessionFromSupabaseUser(supaSession.user, supaSession.access_token)
         setSession(newSession)
         localStorage.setItem('auth_session', JSON.stringify(newSession))
         syncSessionCookie(newSession)
@@ -141,32 +159,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true)
     try {
       // Try Supabase Auth first for real authentication
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+      if (isSupabaseConfigured) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
 
-      if (!error && data.user) {
-        // Successfully authenticated with Supabase
-        const supaUser = data.user
-        const appUser: User = {
-          id: supaUser.id,
-          email: supaUser.email ?? '',
-          fullName: supaUser.user_metadata?.full_name ?? supaUser.user_metadata?.name ?? supaUser.email?.split('@')[0] ?? 'Pengguna',
-          role: supaUser.user_metadata?.role || 'customer',
-          status: 'active',
-          createdAt: new Date(supaUser.created_at),
-          updatedAt: new Date(),
+        if (!error && data.user) {
+          // Successfully authenticated with Supabase
+          const newSession = sessionFromSupabaseUser(data.user, data.session.access_token)
+          setSession(newSession)
+          syncSessionCookie(newSession)
+          return
         }
-        const newSession: AuthSession = {
-          user: appUser,
-          isLoggedIn: true,
-          isAdmin: appUser.role === 'admin',
-          token: data.session.access_token,
-        }
-        setSession(newSession)
-        syncSessionCookie(newSession)
-        return
       }
 
       // Fall back to mock users for demo - in production, call backend API
@@ -238,6 +243,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const loginWithGoogle = async () => {
+    if (!isSupabaseConfigured) {
+      throw new Error('Supabase belum dikonfigurasi. Isi .env.local untuk login Google.')
+    }
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -300,7 +309,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     // Sign out from Supabase (handles Google session)
-    supabase.auth.signOut()
+    if (isSupabaseConfigured) {
+      supabase.auth.signOut()
+    }
     setSession({
       user: null,
       isLoggedIn: false,

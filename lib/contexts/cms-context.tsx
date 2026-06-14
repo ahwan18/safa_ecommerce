@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase/client'
+import { isSupabaseConfigured, supabase } from '@/lib/supabase/client'
 import { CMSContent } from '@/lib/types'
 
 interface CMSContextType {
@@ -19,17 +19,20 @@ export function CMSProvider({ children }: { children: ReactNode }) {
 
   // ✅ FETCH DATA
   const fetchContent = async () => {
+    if (!isSupabaseConfigured) {
+      setLoading(false)
+      return
+    }
+
     try {
       setLoading(true)
-
-      console.log('🚀 Fetching CMS...')
 
       const { data, error } = await supabase
         .from('cms_content')
         .select('*')
 
       if (error) {
-        console.error('❌ Supabase fetch error:', {
+        console.error('Supabase CMS fetch error:', {
           message: error.message,
           details: error.details,
           hint: error.hint,
@@ -38,11 +41,9 @@ export function CMSProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      console.log('✅ CMS loaded:', data)
-
       setContent(data || [])
-    } catch (err: any) {
-      console.error('❌ Unexpected fetch error:', err?.message)
+    } catch (err) {
+      console.error('Unexpected CMS fetch error:', err instanceof Error ? err.message : err)
     } finally {
       setLoading(false)
     }
@@ -55,6 +56,11 @@ export function CMSProvider({ children }: { children: ReactNode }) {
 
   // ✅ UPDATE DATA
   const updateContent = async (section: string, data: Record<string, any>) => {
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase is not configured. CMS content was not saved.')
+      return
+    }
+
     try {
       const { error } = await supabase
         .from('cms_content')
@@ -67,7 +73,7 @@ export function CMSProvider({ children }: { children: ReactNode }) {
         )
 
       if (error) {
-        console.error('❌ Supabase update error:', {
+        console.error('Supabase CMS update error:', {
           message: error.message,
           details: error.details,
           hint: error.hint,
@@ -76,11 +82,9 @@ export function CMSProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      console.log('✅ CMS updated:', section)
-
       await fetchContent()
-    } catch (err: any) {
-      console.error('❌ Unexpected update error:', err?.message)
+    } catch (err) {
+      console.error('Unexpected CMS update error:', err instanceof Error ? err.message : err)
     }
   }
 
