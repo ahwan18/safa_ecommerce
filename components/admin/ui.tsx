@@ -13,19 +13,27 @@ export function AdminPageHeader({
   meta?: ReactNode
 }) {
   return (
-    <div className="mb-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.06)] sm:mb-8">
-      <div className="border-b border-slate-100 bg-[linear-gradient(135deg,#ffffff_0%,#f8fafc_55%,#ecfeff_100%)] px-5 py-5 sm:px-6 lg:px-7">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div className="mb-5 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.06)] sm:mb-6 md:mb-8">
+      <div className="border-b border-slate-100 bg-[linear-gradient(135deg,#ffffff_0%,#f8fafc_55%,#ecfeff_100%)] px-4 py-4 sm:px-5 sm:py-5 md:px-6 lg:px-7">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between lg:gap-4">
           <div className="min-w-0">
             {meta && (
-              <div className="mb-3 inline-flex min-h-7 items-center rounded-md border border-slate-200 bg-white/80 px-3 text-xs font-bold uppercase tracking-[0.08em] text-slate-500 shadow-sm">
+              <div className="mb-2 inline-flex min-h-7 items-center rounded-md border border-slate-200 bg-white/80 px-3 text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500 shadow-sm sm:mb-3 sm:text-xs">
                 {meta}
               </div>
             )}
-            <h1 className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">{title}</h1>
-            {description && <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{description}</p>}
+            <h1 className="text-xl font-black tracking-tight text-slate-950 sm:text-2xl md:text-3xl">
+              {title}
+            </h1>
+            {description && (
+              <p className="mt-1.5 max-w-3xl text-sm leading-6 text-slate-600 sm:mt-2">{description}</p>
+            )}
           </div>
-          {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
+          {actions && (
+            <div className="-mx-1 flex shrink-0 flex-wrap items-center gap-2 overflow-x-auto px-1 sm:overflow-visible">
+              {actions}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -61,12 +69,12 @@ export function AdminPanelHeader({
   action?: ReactNode
 }) {
   return (
-    <div className="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/55 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h2 className="text-base font-black text-slate-950">{title}</h2>
-        {description && <p className="mt-1 text-xs text-slate-500">{description}</p>}
+    <div className="flex flex-col gap-2 border-b border-slate-100 bg-slate-50/55 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-5 sm:py-4">
+      <div className="min-w-0">
+        <h2 className="truncate text-base font-black text-slate-950">{title}</h2>
+        {description && <p className="mt-1 truncate text-xs text-slate-500">{description}</p>}
       </div>
-      {action}
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   )
 }
@@ -117,16 +125,26 @@ export function AdminStatTile({
   const toneClass = tones[tone]
 
   return (
-    <AdminPanel className={cn('relative overflow-hidden bg-gradient-to-br p-5 ring-1 ring-inset', toneClass.wash, toneClass.ring)}>
+    <AdminPanel
+      className={cn(
+        'relative overflow-hidden bg-gradient-to-br p-4 ring-1 ring-inset sm:p-5',
+        toneClass.wash,
+        toneClass.ring
+      )}
+    >
       <div className={cn('absolute inset-x-0 top-0 h-1', toneClass.accent)} />
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">{label}</p>
-          <p className="mt-3 text-2xl font-black leading-none text-slate-950">{value}</p>
-          {hint && <p className="mt-1 text-xs text-slate-500">{hint}</p>}
+      <div className="flex items-start justify-between gap-3 sm:gap-4">
+        <div className="min-w-0">
+          <p className="truncate text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 sm:text-xs">
+            {label}
+          </p>
+          <p className="mt-2 truncate text-xl font-black leading-none text-slate-950 sm:mt-3 sm:text-2xl">
+            {value}
+          </p>
+          {hint && <p className="mt-1 truncate text-[11px] text-slate-500 sm:text-xs">{hint}</p>}
         </div>
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-white/80 bg-white/85 shadow-sm">
-          <span className={cn('h-2.5 w-2.5 rounded-full', toneClass.dot)} />
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/80 bg-white/85 shadow-sm sm:h-9 sm:w-9">
+          <span className={cn('h-2 w-2 rounded-full sm:h-2.5 sm:w-2.5', toneClass.dot)} />
         </span>
       </div>
     </AdminPanel>
@@ -141,7 +159,7 @@ export function AdminEmptyState({
   description?: string
 }) {
   return (
-    <div className="flex min-h-40 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-[linear-gradient(135deg,#f8fafc,#ffffff)] px-6 py-10 text-center">
+    <div className="flex min-h-40 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-[linear-gradient(135deg,#f8fafc,#ffffff)] px-4 py-8 text-center sm:px-6 sm:py-10">
       <span className="mb-3 grid h-10 w-10 place-items-center rounded-lg border border-slate-200 bg-white text-slate-400 shadow-sm">
         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4m8-8v16" />

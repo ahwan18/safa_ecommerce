@@ -73,7 +73,7 @@ export default function AdminDashboard() {
   })
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       <AdminPageHeader
         title="Dashboard"
         description={`Selamat datang kembali, ${user?.fullName ?? 'Admin'}. Pantau aktivitas toko dan pesanan prioritas hari ini.`}
@@ -90,25 +90,28 @@ export default function AdminDashboard() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
         <AdminStatTile label="Total Pesanan" value={totalOrders} hint="Sepanjang waktu" />
         <AdminStatTile label="Pesanan Aktif" value={activeOrders} hint="Belum selesai" tone="orange" />
         <AdminStatTile label="Pendapatan" value={formatRpShort(totalRevenue)} hint="Semua transaksi" tone="green" />
         <AdminStatTile label="Pelanggan" value={totalCustomers} hint="Akun unik" tone="blue" />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-6">
         <AdminPanel>
           <AdminPanelHeader title="Status Pesanan" description="Distribusi pekerjaan yang perlu dipantau tim." />
-          <div className="space-y-4 p-5">
+          <div className="space-y-3.5 p-4 sm:space-y-4 sm:p-5">
             {['pending', 'processing', 'ready', 'shipped', 'delivered'].map(status => {
               const count = statusCounts[status] ?? 0
               const pct = totalOrders > 0 ? (count / totalOrders) * 100 : 0
               const cfg = STATUS_CONFIG[status]
 
               return (
-                <div key={status} className="grid grid-cols-[88px_minmax(0,1fr)_36px] items-center gap-3">
-                  <span className="text-sm font-medium text-slate-600">{cfg.label}</span>
+                <div
+                  key={status}
+                  className="grid grid-cols-[64px_minmax(0,1fr)_32px] items-center gap-2.5 sm:grid-cols-[88px_minmax(0,1fr)_36px] sm:gap-3"
+                >
+                  <span className="truncate text-xs font-medium text-slate-600 sm:text-sm">{cfg.label}</span>
                   <div className="h-2 overflow-hidden rounded-full bg-slate-100">
                     <div className={`h-full rounded-full ${cfg.bar}`} style={{ width: `${pct}%` }} />
                   </div>
@@ -121,7 +124,7 @@ export default function AdminDashboard() {
 
         <AdminPanel>
           <AdminPanelHeader title="Akses Cepat" description="Aksi yang paling sering dipakai." />
-          <div className="space-y-2 p-4">
+          <div className="space-y-2 p-3.5 sm:p-4">
             {[
               { href: '/admin/products', label: 'Tambah Produk' },
               { href: '/admin/orders', label: 'Lihat Pesanan' },
@@ -146,24 +149,29 @@ export default function AdminDashboard() {
       {topProducts.length > 0 && (
         <AdminPanel>
           <AdminPanelHeader title="Produk Terlaris" description="Produk dengan kontribusi pendapatan tertinggi." />
-          <div className="space-y-4 p-5">
+          <div className="space-y-3.5 p-4 sm:space-y-4 sm:p-5">
             {topProducts.map((product, index) => {
               const maxRevenue = topProducts[0].revenue
               const pct = maxRevenue > 0 ? (product.revenue / maxRevenue) * 100 : 0
 
               return (
-                <div key={product.name} className="grid grid-cols-[24px_minmax(0,1fr)_96px] items-center gap-3">
+                <div
+                  key={product.name}
+                  className="grid grid-cols-[20px_minmax(0,1fr)_72px] items-center gap-2.5 sm:grid-cols-[24px_minmax(0,1fr)_96px] sm:gap-3"
+                >
                   <span className="text-right text-xs font-black text-slate-400">{index + 1}</span>
                   <div className="min-w-0">
-                    <div className="mb-1 flex items-center justify-between gap-3">
+                    <div className="mb-1 flex items-center justify-between gap-2.5">
                       <span className="truncate text-sm font-bold text-slate-950">{product.name}</span>
-                      <span className="shrink-0 text-xs text-slate-500">{product.qty} pcs</span>
+                      <span className="shrink-0 text-[11px] text-slate-500 sm:text-xs">{product.qty} pcs</span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-slate-100">
                       <div className="h-full rounded-full bg-slate-950" style={{ width: `${pct}%` }} />
                     </div>
                   </div>
-                  <span className="text-right text-sm font-black text-slate-950">{formatRpShort(product.revenue)}</span>
+                  <span className="text-right text-xs font-black text-slate-950 sm:text-sm">
+                    {formatRpShort(product.revenue)}
+                  </span>
                 </div>
               )
             })}
@@ -183,16 +191,19 @@ export default function AdminDashboard() {
         />
 
         {recentOrders.length === 0 ? (
-          <div className="p-5">
+          <div className="p-4 sm:p-5">
             <AdminEmptyState title="Belum ada pesanan" description="Saat pelanggan checkout, pesanan terbaru akan tampil di sini." />
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
+            <table className="w-full min-w-[640px] border-collapse">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50">
                   {['Nomor Pesanan', 'Pelanggan', 'Total', 'Status', 'Tanggal'].map(header => (
-                    <th key={header} className="px-5 py-3 text-left text-[11px] font-black uppercase tracking-[0.08em] text-slate-500">
+                    <th
+                      key={header}
+                      className="whitespace-nowrap px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.08em] text-slate-500 sm:px-5"
+                    >
                       {header}
                     </th>
                   ))}
@@ -203,17 +214,32 @@ export default function AdminDashboard() {
                   const cfg = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending
 
                   return (
-                    <tr key={order.id} className="border-b border-slate-100 transition last:border-b-0 hover:bg-slate-50">
-                      <td className="whitespace-nowrap px-5 py-4 font-mono text-sm font-bold text-slate-950">{order.orderNumber}</td>
-                      <td className="px-5 py-4 text-sm text-slate-600">{order.shippingAddress.name}</td>
-                      <td className="whitespace-nowrap px-5 py-4 text-sm font-black text-slate-950">Rp{order.total.toLocaleString('id-ID')}</td>
-                      <td className="px-5 py-4">
-                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${cfg.bg} ${cfg.text}`}>
+                    <tr
+                      key={order.id}
+                      className="border-b border-slate-100 transition last:border-b-0 hover:bg-slate-50"
+                    >
+                      <td className="whitespace-nowrap px-4 py-3.5 font-mono text-sm font-bold text-slate-950 sm:px-5 sm:py-4">
+                        {order.orderNumber}
+                      </td>
+                      <td className="px-4 py-3.5 text-sm text-slate-600 sm:px-5 sm:py-4">
+                        {order.shippingAddress.name}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3.5 text-sm font-black text-slate-950 sm:px-5 sm:py-4">
+                        Rp{order.total.toLocaleString('id-ID')}
+                      </td>
+                      <td className="px-4 py-3.5 sm:px-5 sm:py-4">
+                        <span
+                          className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold ${cfg.bg} ${cfg.text}`}
+                        >
                           {cfg.label}
                         </span>
                       </td>
-                      <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-500">
-                        {new Date(order.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      <td className="whitespace-nowrap px-4 py-3.5 text-sm text-slate-500 sm:px-5 sm:py-4">
+                        {new Date(order.createdAt).toLocaleDateString('id-ID', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
                       </td>
                     </tr>
                   )

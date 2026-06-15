@@ -253,12 +253,18 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                   >
                     <Card className="overflow-hidden hover:shadow-lg transition-all border border-border h-full cursor-pointer">
                       <div className="relative h-48 bg-muted">
-                        <Image
-                          src={relatedProduct.image}
-                          alt={relatedProduct.name}
-                          fill
-                          className="object-cover"
-                        />
+                        {relatedProduct.image ? (
+                          <Image
+                            src={relatedProduct.image}
+                            alt={relatedProduct.name}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center w-full h-full text-3xl text-slate-400">
+                            🧥
+                          </div>
+                        )}
                       </div>
 
                       <div className="p-4">

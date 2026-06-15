@@ -98,12 +98,19 @@ export default function CartPage() {
                       <div className="grid md:grid-cols-4 gap-6">
                         {/* Product Image */}
                         <div className="relative h-40 bg-muted rounded-lg overflow-hidden">
-                          <Image
-                            src={item.product?.image || ''}
-                            alt={item.product?.name || ''}
-                            fill
-                            className="object-cover"
-                          />
+                          {item.product?.image ? (
+                            <Image
+                              src={item.product.image}
+                              alt={item.product.name}
+                              fill
+                              className="object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="flex items-center justify-center w-full h-full text-3xl text-slate-400">
+                              🧥
+                            </div>
+                          )}
                         </div>
 
                         {/* Product Info */}

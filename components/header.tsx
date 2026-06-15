@@ -26,80 +26,99 @@ export function Header() {
     prevCount.current = cartCount
   }, [cartCount])
 
-  return (
-    <header style={{ position: 'sticky', top: 0, zIndex: 40, width: '100%', borderBottom: '1px solid rgb(229,231,235)', backgroundColor: 'rgb(255,255,255)', backdropFilter: 'blur(12px)' }}>
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+  // Close mobile menu when route hash changes (anchor link click)
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+    const onResize = () => {
+      if (window.innerWidth >= 768) setMobileMenuOpen(false)
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [mobileMenuOpen])
 
+  return (
+    <header
+      style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 40,
+        width: '100%',
+        borderBottom: '1px solid rgb(229,231,235)',
+        backgroundColor: 'rgb(255,255,255)',
+        backdropFilter: 'blur(12px)',
+      }}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-14 sm:h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-primary rounded-md flex items-center justify-center">
-              <span className="text-primary-foreground text-sm font-semibold">
-                S
-              </span>
+          <Link href="/" className="flex items-center gap-2 flex-shrink-0 min-w-0">
+            <div className="w-9 h-9 bg-primary rounded-md flex items-center justify-center flex-shrink-0">
+              <span className="text-primary-foreground text-sm font-semibold">S</span>
             </div>
-            <span className="text-lg font-semibold text-foreground hidden sm:inline">
+            <span className="text-base sm:text-lg font-semibold text-foreground hidden sm:inline truncate">
               Safa Apparel
             </span>
           </Link>
 
-          {/* Navigation */}
-          <nav className="flex items-center gap-8">
+          {/* Navigation (Desktop) */}
+          <nav className="hidden md:flex items-center gap-8">
             <Link
               href="/#home"
-              className="
-                text-sm font-medium
-                transition-all duration-300
-                hover:text-primary
-                hover:scale-105
-              "
+              className="text-sm font-medium transition-all duration-300 hover:text-primary hover:scale-105"
             >
               Home
             </Link>
-
             <Link
               href="/#shop"
-              className="
-                text-sm font-medium
-                transition-all duration-300
-                hover:text-primary
-                hover:scale-105
-              "
+              className="text-sm font-medium transition-all duration-300 hover:text-primary hover:scale-105"
             >
               Shop
             </Link>
-
             <Link
               href="/#contact"
-              className="
-                text-sm font-medium
-                transition-all duration-300
-                hover:text-primary
-                hover:scale-105
-              "
+              className="text-sm font-medium transition-all duration-300 hover:text-primary hover:scale-105"
             >
               Contact
             </Link>
-
           </nav>
 
           {/* Right Section */}
-          <div className="flex items-center gap-3">
-
+          <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
             {/* Cart */}
-            <Link href={isAuthenticated ? '/cart' : '/login?redirect=/cart'} className="relative">
-              <Button variant="ghost" size="icon" className="rounded-full hover:bg-secondary/60 transition">
+            <Link
+              href={isAuthenticated ? '/cart' : '/login?redirect=/cart'}
+              className="relative"
+              aria-label="Keranjang"
+            >
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full hover:bg-secondary/60 transition w-10 h-10 sm:w-10 sm:h-10"
+              >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m10 0l2 9m-12-9h14M17 6h2m-2 3h2" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m10 0l2 9m-12-9h14M17 6h2m-2 3h2"
+                  />
                 </svg>
                 {cartCount > 0 && (
                   <span
                     style={{
-                      position: 'absolute', top: -4, right: -4,
-                      backgroundColor: 'rgb(220,38,38)', color: '#fff',
-                      borderRadius: '50%', width: 18, height: 18,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 9, fontWeight: 700,
+                      position: 'absolute',
+                      top: -4,
+                      right: -4,
+                      backgroundColor: 'rgb(220,38,38)',
+                      color: '#fff',
+                      borderRadius: '50%',
+                      width: 18,
+                      height: 18,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 9,
+                      fontWeight: 700,
                       transition: 'transform 0.15s ease',
                       transform: bounce ? 'scale(1.5)' : 'scale(1)',
                     }}
@@ -110,9 +129,9 @@ export function Header() {
               </Button>
             </Link>
 
-            {/* Login Button */}
+            {/* Login Button (Desktop) */}
             {!isAuthenticated && (
-              <Link href="/login">
+              <Link href="/login" className="hidden sm:inline-block">
                 <Button size="sm" className="px-4 text-sm">
                   Login
                 </Button>
@@ -125,33 +144,63 @@ export function Header() {
             {/* User Profile Popup */}
             {isAuthenticated && <UserProfilePopup />}
 
-            {/* Mobile Menu */}
+            {/* Mobile Menu Toggle */}
             <button
-              className="md:hidden p-2 rounded-md hover:bg-secondary/60 transition"
+              className="md:hidden p-2 rounded-md hover:bg-secondary/60 transition w-10 h-10 flex items-center justify-center"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
+              aria-expanded={mobileMenuOpen}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                  d={mobileMenuOpen
-                    ? "M6 18L18 6M6 6l12 12"
-                    : "M4 6h16M4 12h16M4 18h16"} />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d={
+                    mobileMenuOpen
+                      ? 'M6 18L18 6M6 6l12 12'
+                      : 'M4 6h16M4 12h16M4 18h16'
+                  }
+                />
               </svg>
             </button>
-
           </div>
         </div>
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className="md:hidden mt-4 flex flex-col gap-4 pb-4 border-t border-border pt-4">
-            <Link href="/shop">Produk</Link>
-            <Link href="/#services">Layanan</Link>
-            <Link href="/#products">Tentang</Link>
-            <Link href="/#contact">Kontak</Link>
+          <div className="md:hidden flex flex-col gap-1 pb-4 border-t border-border pt-3">
+            <Link
+              href="/#home"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-2 py-3 text-sm font-medium rounded-md hover:bg-secondary/60 transition"
+            >
+              Home
+            </Link>
+            <Link
+              href="/#shop"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-2 py-3 text-sm font-medium rounded-md hover:bg-secondary/60 transition"
+            >
+              Shop
+            </Link>
+            <Link
+              href="/#contact"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-2 py-3 text-sm font-medium rounded-md hover:bg-secondary/60 transition"
+            >
+              Contact
+            </Link>
 
             {!isAuthenticated && (
-              <Link href="/login">
-                <Button size="sm">Login</Button>
+              <Link
+                href="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-2 pt-2"
+              >
+                <Button size="sm" className="w-full min-h-[44px]">
+                  Login
+                </Button>
               </Link>
             )}
           </div>

@@ -18,12 +18,13 @@ export const supabase = createBrowserClient(
       storage: {
         getItem: (key) => {
           if (typeof window === 'undefined') return null
-          const item = localStorage.getItem(key)
-          return item ? JSON.parse(item) : null
+          // Return raw string — Supabase auth handles JSON parsing internally
+          return localStorage.getItem(key)
         },
         setItem: (key, value) => {
           if (typeof window === 'undefined') return
-          localStorage.setItem(key, JSON.stringify(value))
+          // Supabase auth passes a stringified JSON; store as-is to avoid double-encoding
+          localStorage.setItem(key, value)
         },
         removeItem: (key) => {
           if (typeof window === 'undefined') return

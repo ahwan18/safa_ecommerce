@@ -163,7 +163,11 @@ export default function AdminLaporanPage() {
               title="Laporan"
               description="Analisis performa pesanan, status, dan pendapatan dalam rentang tanggal pilihan."
               actions={
-                <Button onClick={handleExportCSV} variant="outline" className="flex items-center gap-2">
+                <Button
+                  onClick={handleExportCSV}
+                  variant="outline"
+                  className="flex w-full sm:w-auto items-center justify-center gap-2"
+                >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
@@ -174,15 +178,15 @@ export default function AdminLaporanPage() {
 
             {/* ── Filter Bar ── */}
             <Card className="p-5 border border-border">
-              <div className="flex flex-wrap gap-4 items-end">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 {/* Date range */}
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">Dari Tanggal</label>
-                  <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-40" />
+                  <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-full" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">Sampai Tanggal</label>
-                  <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-40" />
+                  <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-full" />
                 </div>
 
                 {/* Status filter */}
@@ -191,7 +195,7 @@ export default function AdminLaporanPage() {
                   <select
                     value={statusFilter}
                     onChange={e => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 border border-border rounded-md bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   >
                     <option value="all">Semua Status</option>
                     {Object.entries(STATUS_LABEL).map(([v, l]) => (
@@ -201,7 +205,7 @@ export default function AdminLaporanPage() {
                 </div>
 
                 {/* Quick presets */}
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex flex-wrap gap-2 md:col-span-2 xl:col-span-1">
                   {[
                     { label: '7 Hari', days: 7 },
                     { label: '30 Hari', days: 30 },
@@ -210,7 +214,7 @@ export default function AdminLaporanPage() {
                     <button
                       key={p.days}
                       onClick={() => setRange(p.days)}
-                      className="px-3 py-2 text-xs font-medium border border-border rounded-md hover:bg-muted transition"
+                      className="flex-1 sm:flex-none px-3 py-2 text-xs font-medium border border-border rounded-md hover:bg-muted transition"
                     >
                       {p.label}
                     </button>
@@ -220,7 +224,7 @@ export default function AdminLaporanPage() {
             </Card>
 
             {/* ── Summary Cards ── */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
               {[
                 { label: 'Total Pesanan', value: summary.total, color: 'text-foreground' },
                 { label: 'Selesai', value: summary.delivered, color: 'text-green-600' },
@@ -228,9 +232,9 @@ export default function AdminLaporanPage() {
                 { label: 'Pendapatan', value: formatRp(summary.revenue), color: 'text-primary' },
                 { label: 'Rata-rata/Pesanan', value: formatRp(summary.avgOrder), color: 'text-foreground' },
               ].map(c => (
-                <Card key={c.label} className="p-5 border border-border">
+                <Card key={c.label} className="p-4 sm:p-5 border border-border">
                   <p className="text-xs text-muted-foreground mb-1">{c.label}</p>
-                  <p className={`text-2xl font-bold ${c.color}`}>{c.value}</p>
+                  <p className={`text-xl sm:text-2xl font-bold break-words ${c.color}`}>{c.value}</p>
                 </Card>
               ))}
             </div>
@@ -247,8 +251,8 @@ export default function AdminLaporanPage() {
                   <p className="text-sm">Tidak ada data untuk rentang tanggal ini</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                <div className="overflow-x-auto w-full">
+                  <table className="min-w-[900px] w-full text-sm">
                     <thead>
                       <tr className="border-b border-border bg-muted/30">
                         <th
@@ -317,7 +321,7 @@ export default function AdminLaporanPage() {
                                   Detail Pesanan — {row.date}
                                 </p>
                                 <div className="overflow-x-auto rounded-lg border border-border">
-                                  <table className="w-full text-xs">
+                                  <table className="min-w-[700px] w-full text-xs">
                                     <thead>
                                       <tr className="border-b border-border bg-muted/40">
                                         <th className="text-left py-2 px-3 font-semibold text-foreground/70">No. Pesanan</th>
@@ -382,9 +386,12 @@ export default function AdminLaporanPage() {
                   const count = filteredOrders.filter(o => o.status === status).length
                   const pct = summary.total > 0 ? (count / summary.total) * 100 : 0
                   return (
-                    <div key={status} className="flex items-center gap-4">
-                      <span className="w-24 text-sm text-foreground/70 flex-shrink-0">{label}</span>
-                      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                        key={status}
+                        className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4"
+                      >
+                      <span className="sm:w-24 text-sm text-foreground/70 flex-shrink-0">{label}</span>
+                      <div className="w-full sm:flex-1 h-2 bg-muted rounded-full overflow-hidden">
                         <div
                           className="h-full bg-primary rounded-full transition-all"
                           style={{ width: `${pct}%` }}

@@ -57,7 +57,7 @@
   --accent-foreground: oklch(0.15 0.02 250);
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.25 0.02 250);
+  --border: oklch(0.25 0.02 50);
   --input: oklch(0.18 0.02 250);
   --ring: oklch(0.65 0.18 60);
   --chart-1: oklch(0.65 0.18 60);
@@ -68,10 +68,10 @@
   --sidebar: oklch(0.15 0.02 250);
   --sidebar-foreground: oklch(0.98 0.01 70);
   --sidebar-primary: oklch(0.65 0.18 60);
-  --sidebar-primary-foreground: oklch(0.98 0.01 70);
+  --sidebar-primary-foreground: oklch(0.15 0.02 250);
   --sidebar-accent: oklch(0.3 0.02 250);
   --sidebar-accent-foreground: oklch(0.98 0.01 70);
-  --sidebar-border: oklch(0.25 0.02 250);
+  --sidebar-border: oklch(0.25 0.02 50);
   --sidebar-ring: oklch(0.65 0.18 60);
 }
 
@@ -123,6 +123,17 @@
   body {
     @apply bg-background text-foreground;
   }
+  html,
+  body {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+  img,
+  iframe,
+  video,
+  svg {
+    max-width: 100%;
+  }
 }
 html {
   scroll-behavior: smooth;
@@ -146,5 +157,77 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .admin-page-transition {
     animation: none;
+  }
+}
+
+/* ── Landing page responsive grid helpers ── */
+
+/* Hero grid: 1 column on mobile, 2 columns on tablet+ */
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(32px, 6vw, 64px);
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .hero-grid {
+    grid-template-columns: 1.1fr 0.9fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Why section grid: 1 column on mobile, 2 columns on tablet+ */
+.why-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(32px, 6vw, 64px);
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .why-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Contact grid: 1 column on mobile, 2 columns on tablet+ */
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(20px, 3vw, 32px);
+  align-items: stretch;
+}
+
+@media (min-width: 768px) {
+  .contact-grid {
+    grid-template-columns: 1fr 1.6fr;
+  }
+}
+
+/* On mobile, hide floating cards that overflow the image container */
+@media (max-width: 767px) {
+  .why-floating-card,
+  .why-arrows {
+    display: none;
+  }
+}
+
+/* On small screens, constrain hero image height so it doesn't take over */
+@media (max-width: 767px) {
+  .hero-image-wrap {
+    max-width: 320px;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-image-wrap {
+    max-width: 260px;
   }
 }

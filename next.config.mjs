@@ -1,8 +1,9 @@
+
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  images: {
-    unoptimized: true,
-  },
-}
+  output: 'standalone', // wajib untuk hosting cPanel
+  // konfigurasi lu yang lain...
+};
 
-export default nextConfig
+export default nextConfig;

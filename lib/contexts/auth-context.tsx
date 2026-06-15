@@ -262,8 +262,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     setIsLoading(true)
+    const normalizedEmail = email.trim().toLowerCase()
+    if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+      console.log('[auth] loginAdmin start', { email: normalizedEmail })
+    }
     try {
-      const { user, sessionToken } = await loginAdminWithDatabase(email, password)
+      const { user, sessionToken } = await loginAdminWithDatabase(normalizedEmail, password)
       const newSession: AuthSession = {
         user,
         isLoggedIn: true,
@@ -273,6 +277,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(newSession)
       localStorage.setItem('auth_session', JSON.stringify(newSession))
       syncSessionCookie(newSession)
+      if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+        console.log('[auth] loginAdmin success', { userId: user.id, email: user.email, role: user.role })
+      }
+    } catch (err) {
+      if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+        console.warn('[auth] loginAdmin failed', { email: normalizedEmail, message: err instanceof Error ? err.message : String(err) })
+      }
+      throw err
     } finally {
       setIsLoading(false)
     }
@@ -422,8 +434,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const adminSessionToken = getAdminDatabaseSessionToken(session)
     if (adminSessionToken) {
-      const updatedUser = await updateAdminEmailInDatabase(adminSessionToken, trimmed)
-      setSession({ ...session, user: updatedUser })
+      if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+        console.log('[auth] changeEmail start', { from: session.user.email, to: trimmed })
+      }
+      try {
+        const updatedUser = await updateAdminEmailInDatabase(adminSessionToken, trimmed)
+        setSession({ ...session, user: updatedUser })
+        if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+          console.log('[auth] changeEmail success', { newEmail: updatedUser.email, role: updatedUser.role })
+        }
+      } catch (err) {
+        if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+          console.warn('[auth] changeEmail failed', { message: err instanceof Error ? err.message : String(err) })
+        }
+        throw err
+      }
       return
     }
 
