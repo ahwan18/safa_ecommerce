@@ -9,7 +9,6 @@ import { useAuth } from '@/lib/contexts/auth-context'
 import { useOrders } from '@/lib/contexts/order-context'
 import { useReviews } from '@/lib/contexts/review-context'
 import { ReviewModal } from '@/components/review/review-modal'
-import { WhatsAppInlineButton } from '@/components/whatsapp-button'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { Order } from '@/lib/types'
@@ -17,10 +16,10 @@ import type { Order } from '@/lib/types'
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const ORDER_STATUS: Record<string, { label: string; bg: string; text: string; dot: string }> = {
-  pending:    { label: 'Menunggu Pembayaran', bg: '#fffbeb', text: '#92400e', dot: '#f59e0b' },
-  processing: { label: 'Diproses',            bg: '#eff6ff', text: '#1d4ed8', dot: '#3b82f6' },
-  ready:      { label: 'Siap Dikirim',         bg: '#faf5ff', text: '#6b21a8', dot: '#a855f7' },
-  shipped:    { label: 'Dikirim',              bg: '#ecfeff', text: '#155e75', dot: '#06b6d4' },
+  pending:     { label: 'Menunggu Pembayaran', bg: '#fffbeb', text: '#92400e', dot: '#f59e0b' },
+  processing: { label: 'Diproses',           bg: '#eff6ff', text: '#1d4ed8', dot: '#3b82f6' },
+  ready:       { label: 'Siap Dikirim',          bg: '#faf5ff', text: '#6b21a8', dot: '#a855f7' },
+  shipped:     { label: 'Dikirim',              bg: '#ecfeff', text: '#155e75', dot: '#06b6d4' },
   delivered:  { label: 'Selesai',              bg: '#f0fdf4', text: '#14532d', dot: '#22c55e' },
   cancelled:  { label: 'Dibatalkan',           bg: '#fff1f2', text: '#9f1239', dot: '#f43f5e' },
 }
@@ -63,6 +62,8 @@ function Chip({ label, bg, text }: { label: string; bg: string; text: string }) 
     </span>
   )
 }
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
@@ -107,9 +108,12 @@ function OrderDetail({ order, onClose }: { order: Order; onClose: () => void }) 
     }}>
       {/* ── Detail Header ── */}
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '14px 20px', backgroundColor: '#f8fafc',
+        display: 'flex', 
+        alignItems: 'center', 
+        padding: '14px 20px', 
+        backgroundColor: '#f8fafc',
         borderBottom: '1px solid #e5e7eb',
+        justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: 14, color: '#0f172a' }}>
@@ -307,8 +311,6 @@ function OrderDetail({ order, onClose }: { order: Order; onClose: () => void }) 
   )
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
-
 export default function PesananSayaPage() {
   const router = useRouter()
   const { user, isAuthenticated, isLoading } = useAuth()
@@ -382,7 +384,7 @@ export default function PesananSayaPage() {
   return (
     <>
       <Header />
-      <main style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+      <main style={{ minHeight: '100vh', backgroundColor: '#f8fafc', paddingTop: '64px' }}>
         <div style={{ maxWidth: 860, margin: '0 auto', padding: '40px 16px 60px' }}>
 
           {/* ── Page Header ── */}

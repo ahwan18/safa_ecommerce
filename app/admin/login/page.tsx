@@ -40,8 +40,13 @@ export default function AdminLoginPage() {
     }
 
     try {
+      // 1. Jalankan proses autentikasi custom text matching
       await login(email, password)
-      // Jika berhasil login dan perannya admin, useEffect di atas akan otomatis mengarahkan ke /admin
+      
+      // 2. Paksa navigasi instan tanpa menunggu siklus render state useEffect
+      router.push('/admin')
+      router.refresh()
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Email atau password salah. Silakan coba lagi.')
     } finally {
