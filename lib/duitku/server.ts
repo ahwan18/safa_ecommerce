@@ -28,7 +28,7 @@ export function generateDuitkuRequestSignature(params: {
 }): string {
   const { merchantCode, merchantOrderId, paymentAmount, apiKey } = params
   const raw = `${merchantCode}${merchantOrderId}${paymentAmount}${apiKey}`
-  return createHash('sha256').update(raw, 'utf8').digest('hex')
+  return createHash('md5').update(raw, 'utf8').digest('hex')
 }
 
 /**
