@@ -23,20 +23,6 @@ function clearSessionCookie() {
   document.cookie = `${COOKIE_NAME}=;path=/;max-age=0`
 }
 
-function mapDbUser(dbUser: any): User {
-  return {
-    id: dbUser.id.toString(),
-    email: dbUser.email,
-    fullName: dbUser.full_name || 'User',
-    role: dbUser.role || 'customer',
-    status: dbUser.status || 'active',
-    phone: dbUser.phone ?? undefined,
-    avatarUrl: dbUser.avatar_url ?? undefined,
-    createdAt: new Date(dbUser.created_at ?? Date.now()),
-    updatedAt: new Date(dbUser.updated_at ?? Date.now()),
-  }
-}
-
 interface AuthContextType {
   session: AuthSession
   user: User | null
@@ -72,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       writeSessionCookie({
         isLoggedIn: newSession.isLoggedIn,
         isAdmin: newSession.isAdmin,
-        role: newSession.user?.role ?? 'customer',
+        role: 'admin',
       })
     } else {
       clearSessionCookie()
@@ -108,51 +94,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, supabaseSession) => {
-      if (event === 'SIGNED_IN' && supabaseSession?.user) {
+      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && supabaseSession?.user) {
         setIsLoading(true)
-        const gUser = supabaseSession.user
-        const gEmail = gUser.email?.trim().toLowerCase()
+        
+        const newSession: AuthSession = {
+          user: {
+            id: supabaseSession.user.id,
+            email: supabaseSession.user.email || '',
+            fullName: supabaseSession.user.user_metadata?.full_name || supabaseSession.user.user_metadata?.name || 'User',
+            role: 'customer',
+            status: 'active',
+            createdAt: new Date(supabaseSession.user.created_at),
+            updatedAt: new Date(supabaseSession.user.updated_at || supabaseSession.user.created_at),
+          },
+          isLoggedIn: true,
+          isAdmin: false,
+          token: supabaseSession.access_token,
+        }
 
-        if (gEmail) {
-          try {
-            let { data: userData, error: dbError } = await supabase
-              .from('users')
-              .select('*')
-              .eq('email', gEmail)
-              .maybeSingle()
-
-            if (!userData && !dbError) {
-              const { data: newUser, error: insertError } = await supabase
-                .from('users')
-                .insert([{
-                  email: gEmail,
-                  full_name: gUser.user_metadata?.full_name || gUser.user_metadata?.name || 'User Google',
-                  role: 'customer',
-                  status: 'active',
-                }])
-                .select()
-                .single()
-              
-              if (!insertError) userData = newUser
-            }
-
-            if (userData && userData.status === 'active') {
-              const mappedUser = mapDbUser(userData)
-              const newSession: AuthSession = {
-                user: mappedUser,
-                isLoggedIn: true,
-                isAdmin: mappedUser.role === 'admin',
-                token: supabaseSession.access_token,
-              }
-              if (isMounted) {
-                persistSession(newSession)
-              }
-            }
-          } catch (err) {
-            console.error('Gagal sinkronisasi user Google:', err)
-          } finally {
-            if (isMounted) setIsLoading(false)
-          }
+        if (isMounted) {
+          persistSession(newSession)
+          setIsLoading(false)
         }
       }
     })
@@ -173,32 +135,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single()
 
       if (dbError || !userData) throw new Error('Email atau password salah')
-      if (userData.status !== 'active') throw new Error('Akun Anda dinonaktifkan. Hubungi administrator.')
+      if (userData.status !== 'active') throw new Error('Akun Anda dinonaktifkan.')
 
       let passwordMatch = false
-
       if (userData.password_hash && userData.password_hash.startsWith('$2')) {
         const bcrypt = await import('bcryptjs')
         passwordMatch = await bcrypt.compare(password, userData.password_hash)
       } else {
         passwordMatch = password === userData.password_hash
-        if (passwordMatch) {
-          const bcrypt = await import('bcryptjs')
-          const hashed = await bcrypt.hash(password, 10)
-          await supabase
-            .from('users')
-            .update({ password_hash: hashed, updated_at: new Date().toISOString() })
-            .eq('id', userData.id)
-        }
       }
 
       if (!passwordMatch) throw new Error('Email atau password salah')
 
-      const mappedUser = mapDbUser(userData)
       const newSession: AuthSession = {
-        user: mappedUser,
+        user: {
+          id: userData.id.toString(),
+          email: userData.email,
+          fullName: userData.full_name || 'Admin',
+          role: userData.role || 'admin',
+          status: userData.status || 'active',
+          createdAt: new Date(userData.created_at || Date.now()),
+          updatedAt: new Date(userData.updated_at || Date.now()),
+        },
         isLoggedIn: true,
-        isAdmin: mappedUser.role === 'admin',
+        isAdmin: userData.role === 'admin',
         token: null,
       }
 
@@ -211,35 +171,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = useCallback(async (email: string, password: string, fullName: string) => {
     setIsLoading(true)
     try {
-      const bcrypt = await import('bcryptjs')
-      const hashedPassword = await bcrypt.hash(password, 10)
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password: password,
+        options: {
+          data: {
+            full_name: fullName,
+          }
+        }
+      })
 
-      const { data, error } = await supabase
-        .from('users')
-        .insert([{
-          email: email.trim().toLowerCase(),
-          password_hash: hashedPassword,
-          full_name: fullName,
-          role: 'customer',
-          status: 'active',
-        }])
-        .select()
-        .single()
+      if (error) throw error
 
-      if (error) {
-        if (error.code === '23505') throw new Error('Email sudah terdaftar')
-        throw new Error(error.message)
+      if (data.user) {
+        const newSession: AuthSession = {
+          user: {
+            id: data.user.id,
+            email: data.user.email || '',
+            fullName: fullName,
+            role: 'customer',
+            status: 'active',
+            createdAt: new Date(data.user.created_at),
+            updatedAt: new Date(data.user.updated_at || data.user.created_at),
+          },
+          isLoggedIn: true,
+          isAdmin: false,
+          token: data.session?.access_token || null,
+        }
+        persistSession(newSession)
       }
-
-      const mappedUser = mapDbUser(data)
-      const newSession: AuthSession = {
-        user: mappedUser,
-        isLoggedIn: true,
-        isAdmin: false,
-        token: null,
-      }
-
-      persistSession(newSession)
+    } catch (err: any) {
+      throw new Error(err.message || 'Pendaftaran gagal')
     } finally {
       setIsLoading(false)
     }
@@ -249,14 +211,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true)
     try {
       const originUrl = typeof window !== 'undefined' ? window.location.origin : 'https://www.safablon.my.id'
-      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${originUrl}/auth/callback`,
         },
       })
-
       if (error) throw error
     } catch (error: any) {
       console.error('Error Google Login:', error)
@@ -277,61 +237,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [clearSession, router, session.isAdmin])
 
-  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
-    if (!session.user) throw new Error('Tidak ada sesi aktif')
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) throw new Error('Gagal memperbarui password')
+  }
 
-    const { data: userData, error } = await supabase
-      .from('users')
-      .select('password_hash')
-      .eq('id', session.user.id)
-      .single()
-
-    if (error || !userData) throw new Error('Gagal memverifikasi akun')
-
-    const bcrypt = await import('bcryptjs')
-    let isMatch = false
-    if (userData.password_hash.startsWith('$2')) {
-      isMatch = await bcrypt.compare(currentPassword, userData.password_hash)
-    } else {
-      isMatch = currentPassword === userData.password_hash
-    }
-
-    if (!isMatch) throw new Error('Password lama salah')
-
-    const newHashed = await bcrypt.hash(newPassword, 10)
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({ password_hash: newHashed, updated_at: new Date().toISOString() })
-      .eq('id', session.user.id)
-
-    if (updateError) throw new Error('Gagal menyimpan password baru')
-  }, [session.user])
-
-  const changeEmail = useCallback(async (newEmail: string) => {
-    if (!session.user) throw new Error('Tidak ada sesi aktif')
-
-    const trimmed = newEmail.trim().toLowerCase()
-
-    const { data: existing } = await supabase
-      .from('users')
-      .select('id')
-      .eq('email', trimmed)
-      .neq('id', session.user.id)
-      .maybeSingle()
-
-    if (existing) throw new Error('Email sudah digunakan akun lain')
-
-    const { error } = await supabase
-      .from('users')
-      .update({ email: trimmed, updated_at: new Date().toISOString() })
-      .eq('id', session.user.id)
-
-    if (error) throw new Error('Gagal menyimpan email baru')
-
-    const updatedUser: User = { ...session.user, email: trimmed }
-    const updatedSession: AuthSession = { ...session, user: updatedUser }
-    persistSession(updatedSession)
-  }, [session, persistSession])
+  const changeEmail = async (newEmail: string) => {
+    const { error } = await supabase.auth.updateUser({ email: newEmail.trim().toLowerCase() })
+    if (error) throw new Error('Gagal memperbarui email')
+  }
 
   return (
     <AuthContext.Provider
