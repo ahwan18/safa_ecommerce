@@ -143,10 +143,10 @@ export default function AdminSettingsPage() {
                 </div>
               )}
 
-              <Notice tone="blue" icon={Info}>
+              {/* <Notice tone="blue" icon={Info}>
                 Tambahkan <code className="rounded bg-white/80 px-1.5 py-0.5 font-mono">RAJAONGKIR_API_KEY</code> di file{' '}
                 <code className="rounded bg-white/80 px-1.5 py-0.5 font-mono">.env.local</code>, lalu restart server dev.
-              </Notice>
+              </Notice> */}
 
               {originSaved && (
                 <Notice tone="green" icon={Check}>

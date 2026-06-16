@@ -12,7 +12,7 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const { loginAdmin, isAdmin } = useAuth()
+  const { login, isAdmin } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
@@ -21,33 +21,33 @@ export default function AdminLoginPage() {
     }
   }, [isAdmin, router])
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
 
-  setError('')
-  setIsLoading(true)
+    setError('')
+    setIsLoading(true)
 
-  if (!email.trim()) {
-    setError('Masukkan email')
-    setIsLoading(false)
-    return
+    if (!email.trim()) {
+      setError('Masukkan email')
+      setIsLoading(false)
+      return
+    }
+
+    if (!password.trim()) {
+      setError('Masukkan password')
+      setIsLoading(false)
+      return
+    }
+
+    try {
+      await login(email, password)
+      // Jika berhasil login dan perannya admin, useEffect di atas akan otomatis mengarahkan ke /admin
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Email atau password salah. Silakan coba lagi.')
+    } finally {
+      setIsLoading(false)
+    }
   }
-
-  if (!password.trim()) {
-    setError('Masukkan password')
-    setIsLoading(false)
-    return
-  }
-
-  try {
-    await loginAdmin(email, password)
-    router.push('/admin')
-  } catch (err) {
-    setError(err instanceof Error ? err.message : 'Email atau password salah. Silakan coba lagi.')
-  } finally {
-    setIsLoading(false)
-  }
-}
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
@@ -56,7 +56,7 @@ const handleSubmit = async (e: React.FormEvent) => {
           <div className="w-16 h-16 bg-primary rounded-lg flex items-center justify-center mx-auto mb-4">
             <span className="text-primary-foreground text-2xl font-bold">S</span>
           </div>
-          <h1 className="text-3xl font-bold text-foreground">ScreenStudio Admin</h1>
+          <h1 className="text-3xl font-bold text-foreground">Safa Sablon Admin</h1>
           <p className="text-muted-foreground mt-2">Akses panel administrasi</p>
         </div>
 

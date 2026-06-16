@@ -4,8 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/contexts/auth-context'
-import { Header } from '@/components/header'
-import { Footer } from '@/components/footer'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
@@ -65,8 +63,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Header />
-      
       <main className="flex-1 flex items-center justify-center py-16 px-4">
         <Card className="w-full max-w-md border border-border">
           <div className="p-8">
@@ -173,16 +169,14 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <div className="mt-6 p-4 bg-secondary/30 rounded-lg">
+            {/* <div className="mt-6 p-4 bg-secondary/30 rounded-lg">
               <p className="text-xs text-muted-foreground mb-2 font-medium">Demo Credentials:</p>
               <p className="text-xs text-muted-foreground mb-1">Customer: customer@example.com / password123</p>
               <p className="text-xs text-muted-foreground">Admin: admin@screenstudio.com / admin123</p>
-            </div>
+            </div> */}
           </div>
         </Card>
       </main>
-
-      <Footer />
     </div>
   )
 }

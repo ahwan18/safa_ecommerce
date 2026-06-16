@@ -235,16 +235,21 @@ export function HeroSection() {
               }}
             />
 
+            {/* Kontainer Utama Gambar diubah menjadi Persegi & Sudut Tumpul (Estetik) */}
             <div
               style={{
                 width: '100%',
-                maxWidth: 480,
+                maxWidth: 440,
                 aspectRatio: '1/1',
                 position: 'relative',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 transition: 'transform 0.4s ease-out',
+                borderRadius: '24px', 
+                overflow: 'hidden', 
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
               }}
               onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.02)')}
               onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
@@ -255,8 +260,7 @@ export function HeroSection() {
                 style={{
                   width: '100%',
                   height: '100%',
-                  objectFit: 'contain',
-                  filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.35))',
+                  objectFit: 'cover', 
                 }}
               />
             </div>

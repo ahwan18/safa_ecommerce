@@ -111,7 +111,7 @@ export function Footer() {
         {/* Bottom */}
         <div className="border-t border-primary-foreground/20 pt-6 sm:pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
           <p className="text-sm opacity-80">
-            © 2024 ScreenStudio. Semua hak dilindungi.
+            © 2024 SafaSablon. Semua hak dilindungi.
           </p>
           <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
             <a href="#" className="text-sm opacity-80 hover:opacity-100 transition py-1">

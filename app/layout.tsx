@@ -13,7 +13,7 @@ import { ShippingConfigProvider } from '@/lib/contexts/shipping-config-context'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'ScreenStudio - Sablon Profesional',
+  title: 'Safa Sablon - Sablon Profesional',
   description: 'Layanan sablon profesional untuk produk dan jasa. Desain custom, harga kompetitif, kualitas terjamin.',
   generator: 'v0.app',
   icons: {

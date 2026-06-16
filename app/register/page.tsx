@@ -4,8 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/contexts/auth-context'
-import { Header } from '@/components/header'
-import { Footer } from '@/components/footer'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
@@ -68,7 +66,7 @@ export default function RegisterPage() {
     }
 
     try {
-      await register(formData.email, formData.password, formData.fullName, 'customer')
+      await register(formData.email, formData.password, formData.fullName)
       router.push(getSafeRedirect('/account'))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registrasi gagal')
@@ -77,8 +75,6 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Header />
-      
       <main className="flex-1 flex items-center justify-center py-16 px-4">
         <Card className="w-full max-w-md border border-border">
           <div className="p-8">
@@ -219,8 +215,6 @@ export default function RegisterPage() {
           </div>
         </Card>
       </main>
-
-      <Footer />
     </div>
   )
 }
