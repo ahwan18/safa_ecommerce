@@ -1,17 +1,3 @@
-// ============================================================
-// Duitku Server Helpers
-// ------------------------------------------------------------
-// Utilitas untuk verifikasi signature callback Duitku serta
-// pembacaan konfigurasi merchant.
-//
-// Dokumentasi callback Duitku (Pop/POP):
-//   signature = MD5(merchantCode + merchantOrderId + amount + apiKey)
-//
-// Environment variables yang dibaca (server-side only):
-//   - DUITKU_MERCHANT_CODE
-//   - DUITKU_API_KEY
-// ============================================================
-
 import { createHash } from 'crypto'
 
 export interface DuitkuConfig {
@@ -19,11 +5,6 @@ export interface DuitkuConfig {
   apiKey: string
 }
 
-/**
- * Membaca konfigurasi Duitku dari environment.
- * Mengembalikan null jika konfigurasi tidak lengkap agar caller
- * bisa memutuskan untuk menolak callback.
- */
 export function getDuitkuConfig(): DuitkuConfig | null {
   const merchantCode = process.env.DUITKU_MERCHANT_CODE
   const apiKey = process.env.DUITKU_API_KEY
@@ -36,9 +17,23 @@ export function getDuitkuConfig(): DuitkuConfig | null {
 }
 
 /**
- * Menghasilkan signature MD5 untuk callback Duitku.
- * Rumus resmi: md5(merchantCode + merchantOrderId + amount + apiKey).
- * `amount` mengikuti apa yang dikirim Duitku (string angka tanpa separator).
+ * 1. UNTUK CHECKOUT: Menghasilkan signature SHA256 untuk Request Invoice ke Duitku.
+ * Rumus resmi: sha256(merchantCode + merchantOrderId + paymentAmount + apiKey)
+ */
+export function generateDuitkuRequestSignature(params: {
+  merchantCode: string
+  merchantOrderId: string
+  paymentAmount: number
+  apiKey: string
+}): string {
+  const { merchantCode, merchantOrderId, paymentAmount, apiKey } = params
+  const raw = `${merchantCode}${merchantOrderId}${paymentAmount}${apiKey}`
+  return createHash('sha256').update(raw, 'utf8').digest('hex')
+}
+
+/**
+ * 2. UNTUK WEBHOOK: Menghasilkan signature MD5 untuk Callback dari Duitku.
+ * Rumus resmi: md5(merchantCode + merchantOrderId + amount + apiKey)
  */
 export function generateDuitkuSignature(params: {
   merchantCode: string
@@ -48,13 +43,9 @@ export function generateDuitkuSignature(params: {
 }): string {
   const { merchantCode, merchantOrderId, amount, apiKey } = params
   const raw = `${merchantCode}${merchantOrderId}${amount}${apiKey}`
-  return md5Hex(raw)
+  return createHash('md5').update(raw, 'utf8').digest('hex')
 }
 
-/**
- * Verifikasi signature yang dikirim Duitku pada callback.
- * Mengembalikan true hanya jika signature cocok (case-insensitive).
- */
 export function verifyDuitkuSignature(params: {
   merchantCode: string
   merchantOrderId: string
@@ -69,16 +60,9 @@ export function verifyDuitkuSignature(params: {
     amount: params.amount,
     apiKey: params.apiKey,
   })
-  // Bandingkan case-insensitive karena MD5 hex bisa huruf besar/kecil
   return expected.toLowerCase() === params.signature.toLowerCase()
 }
 
-/**
- * Pemetaan status Duitku ke status internal.
- * - resultCode "00" => SUCCESS
- * - statusCode "2"  => CANCELLED
- * - lainnya         => FAILED
- */
 export function mapDuitkuResultToPaymentStatus(input: {
   resultCode?: string | null
   statusCode?: string | null
@@ -89,11 +73,4 @@ export function mapDuitkuResultToPaymentStatus(input: {
   if (resultCode === '00') return 'success'
   if (statusCode === '2') return 'cancelled'
   return 'failed'
-}
-
-// ----------------------------------------------------------
-// Utilitas internal: MD5 heksadesimal (Node.js crypto)
-// ----------------------------------------------------------
-function md5Hex(input: string): string {
-  return createHash('md5').update(input, 'utf8').digest('hex')
 }

@@ -75,7 +75,7 @@ export default function CheckoutPage() {
     ? true
     : Object.values(manualAddress).every(v => v !== '')
 
-  const [paymentMethod, setPaymentMethod] = useState('transfer')
+  const [paymentMethod, setPaymentMethod] = useState('duitku')
   const [shippingSelection, setShippingSelection] = useState<ShippingSelection | null>(null)
 
   useEffect(() => {
@@ -147,13 +147,34 @@ export default function CheckoutPage() {
 
     setLoading(true)
     try {
-      await new Promise(resolve => setTimeout(resolve, 1200))
-
       const orderNumber = `ORD-${Date.now()}`
+      const targetUserId = userId || `user-${Date.now()}`
+
+      // 1. Tembak API Terintegrasi Duitku menggunakan Method PUT
+      const response = await fetch('/api/duitku', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderId: orderNumber,
+          orderNumber: orderNumber,
+          finalPrice: total,
+          customerEmail: user?.email || address.email || 'customer@safasablon.com',
+        }),
+      })
+
+      const paymentData = await response.json()
+
+      if (!response.ok || !paymentData.redirectUrl) {
+        throw new Error(paymentData.error || 'Gagal membuat tautan pembayaran Duitku')
+      }
+
+      // 2. Jika API Duitku sukses, buat objek state local order untuk tracker
       const newOrder: Order = {
         id: orderNumber,
         orderNumber,
-        userId: userId || `user-${Date.now()}`,
+        userId: targetUserId,
         items: cartItems.map(item => ({
           productId: item.productId,
           productName: item.product?.name || '',
@@ -170,23 +191,24 @@ export default function CheckoutPage() {
         shippingInfo: shippingSelection,
         total,
         status: 'pending',
-        paymentStatus: 'paid',
+        paymentStatus: 'pending', // Diubah jadi unpaid sampai webhook masuk lunas
         shippingAddress: address,
         createdAt: new Date(),
         updatedAt: new Date(),
       }
 
+      // Potong stock lokal sementara
       cartItems.forEach(item => {
         const currentStock = (item.product as { stock?: number })?.stock
         if (currentStock != null) {
-          updateProduct(item.productId, { stock: Math.max(0, currentStock - item.quantity) } as Parameters<typeof updateProduct>[1])
+          updateProduct(item.productId, { stock: Math.max(0, currentStock - item.quantity) } as any)
         }
       })
 
       addOrder(newOrder)
 
-      const uid = user?.id?.toString() ?? newOrder.userId
-      addNotification(buildOrderNotif(uid, orderNumber, orderNumber))
+      // Kirim Notifikasi Sistem internal
+      addNotification(buildOrderNotif(targetUserId, orderNumber, orderNumber))
       addNotification(buildAdminNewOrderNotif(orderNumber, orderNumber, address.name))
       const hasDesign = cartItems.some(item => designs[item.id]?.file)
       if (hasDesign) {
@@ -194,10 +216,13 @@ export default function CheckoutPage() {
       }
 
       clearCart()
-      router.push(`/order-tracking/${orderNumber}`)
-    } catch (error) {
+
+      // 3. Mental (Redirect) otomatis ke Portal Pembayaran Duitku Sandbox/Prod
+      window.location.href = paymentData.redirectUrl
+
+    } catch (error: any) {
       console.error(error)
-      alert('Gagal membuat pesanan. Silakan coba lagi.')
+      alert(error.message || 'Gagal membuat pesanan. Silakan coba lagi.')
     } finally {
       setLoading(false)
     }
@@ -452,22 +477,19 @@ export default function CheckoutPage() {
                 <Card className="p-8 border border-border">
                   <h2 className="text-xl font-bold text-foreground mb-6">Metode Pembayaran</h2>
                   <div className="space-y-3 mb-8">
-                    {[
-                      { id: 'transfer', label: 'Transfer Bank', desc: 'Transfer langsung ke rekening kami' },
-                      { id: 'card', label: 'Kartu Kredit/Debit', desc: 'Visa, Mastercard, AmEx' },
-                      { id: 'ewallet', label: 'E-Wallet', desc: 'GoPay, OVO, Dana, ShopeePay' },
-                    ].map(m => (
-                      <button
-                        key={m.id}
-                        onClick={() => setPaymentMethod(m.id)}
-                        className={`w-full p-4 border-2 rounded-lg transition text-left ${
-                          paymentMethod === m.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
-                        }`}
-                      >
-                        <p className="font-medium text-foreground">{m.label}</p>
-                        <p className="text-sm text-muted-foreground">{m.desc}</p>
-                      </button>
-                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('duitku')}
+                      className="w-full p-5 border-2 rounded-xl transition text-left border-primary bg-primary/5"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-semibold text-foreground">Duitku Payment Gateway</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">Dukung Virtual Account, QRIS, E-Wallet, dan Kartu Kredit secara real-time</p>
+                        </div>
+                        <span className="text-xs font-bold bg-primary text-primary-foreground px-2 py-0.5 rounded">Otomatis</span>
+                      </div>
+                    </button>
                   </div>
                   <div className="flex gap-4">
                     <Button variant="outline" onClick={() => setStep('design')} className="flex-1">Kembali</Button>
@@ -501,14 +523,12 @@ export default function CheckoutPage() {
                     </div>
                     <div className="border-t border-border pt-4">
                       <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-2">Pembayaran</p>
-                      <p className="text-sm text-foreground/80">
-                        {paymentMethod === 'transfer' ? 'Transfer Bank' : paymentMethod === 'card' ? 'Kartu Kredit/Debit' : 'E-Wallet'}
-                      </p>
+                      <p className="text-sm text-foreground/80">Gateway Otomatis (Duitku)</p>
                     </div>
                     <div className="flex gap-4 pt-2">
                       <Button variant="outline" onClick={() => setStep('payment')} className="flex-1">Kembali</Button>
                       <Button onClick={handlePlaceOrder} disabled={loading || hasOutOfStock} className="flex-1">
-                        {loading ? 'Memproses...' : 'Konfirmasi & Pesan'}
+                        {loading ? 'Memproses Gateway...' : 'Bayar Sekarang'}
                       </Button>
                     </div>
                   </div>
