@@ -67,7 +67,7 @@ export async function PUT(req: NextRequest) {
       email: customerEmail || 'customer@safasablon.com',
       paymentMethod: '', 
       expiryPeriod: 1440, 
-      callbackUrl: `${baseUrl}/api/duitku`,
+      callbackUrl: `${baseUrl}/api/duitku/callback`,
       returnUrl: `${siteUrl}/checkout/success`,
       signature: signature
     };

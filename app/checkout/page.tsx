@@ -151,7 +151,7 @@ export default function CheckoutPage() {
       const targetUserId = userId || `user-${Date.now()}`
 
       // 1. Tembak API Terintegrasi Duitku menggunakan Method PUT
-      const response = await fetch('/api/duitku', {
+      const response = await fetch('/api/duitku/callback', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
