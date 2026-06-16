@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase/client'
 import type { User, AuthSession } from '@/lib/types'
-import bcrypt from 'bcryptjs' // Kita pakai ini untuk verifikasi password tabel users
 
 interface AuthContextType {
   session: AuthSession
@@ -29,7 +28,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 ========================= */
 function mapCustomUser(dbUser: any): User {
   return {
-    id: dbUser.id.toString(), // konversi serial id ke string jika tipe data di type lu string
+    id: dbUser.id.toString(),
     email: dbUser.email,
     fullName: dbUser.full_name || 'User',
     role: dbUser.role || 'customer',
@@ -53,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   /* =========================
-     INIT SESSION (Membaca dari localStorage untuk custom session)
+     INIT SESSION (Persistent Sesi Client)
   ========================= */
   useEffect(() => {
     const init = () => {
@@ -65,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(parsed)
         }
       } catch (e) {
-        console.error(e)
+        console.error('Gagal memuat sesi lokal:', e)
       } finally {
         setIsLoading(false)
       }
@@ -74,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   /* =========================
-     LOGIN (DIESEKUSI KE TABEL CUSTOM)
+     LOGIN (MATCHING PLAIN TEXT)
   ========================= */
   const login = async (email: string, password: string) => {
     setIsLoading(true)
@@ -88,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single()
 
       if (dbError || !userData) {
+        console.error('Supabase fetch error / User tidak ditemukan:', dbError)
         throw new Error('Invalid login credentials')
       }
 
@@ -96,27 +96,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Akun Anda dinonaktifkan')
       }
 
-      // 3. Bandingkan password inputan dengan password_hash (Bcrypt) dari DB
-      const isPasswordMatch = await bcrypt.compare(password, userData.password_hash)
+      // 3. Bandingkan password string polos langsung ke database (Bypass Bcrypt)
+      const isPasswordMatch = password === userData.password_hash
       if (!isPasswordMatch) {
+        console.warn('Password mismatch untuk user:', email)
         throw new Error('Invalid login credentials')
       }
 
-      // 4. Buat objek user & session baru yang clean
+      // 4. Buat objek user & session baru
       const mappedUser = mapCustomUser(userData)
       const newSession: AuthSession = {
         user: mappedUser,
         isLoggedIn: true,
         isAdmin: mappedUser.role === 'admin',
-        token: 'custom-session-token', // Dummy token agar interface tidak error
+        token: 'custom-session-token',
       }
 
-      // 5. Simpan ke state dan localStorage agar persistent saat di-refresh (Aman untuk Vercel client-side)
+      // 5. Simpan ke state dan localStorage
       setSession(newSession)
       localStorage.setItem('safa_custom_session', JSON.stringify(newSession))
 
     } catch (error) {
       setIsLoading(false)
+      console.error('LOG LOGIN ERROR UTAMA:', error) 
       throw error
     } finally {
       setIsLoading(false)
@@ -124,18 +126,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   /* =========================
-     REGISTER (OPSIONAL KE TABEL CUSTOM)
+     REGISTER (SAVE AS PLAIN TEXT)
   ========================= */
   const register = async (email: string, password: string, fullName: string) => {
     setIsLoading(true)
     try {
-      const salt = await bcrypt.genSalt(10)
-      const hashedPassword = await bcrypt.hash(password, salt)
-
       const { data, error } = await supabase
         .from('users')
         .insert([
-          { email, password_hash: hashedPassword, full_name: fullName, role: 'customer', status: 'active' }
+          { email, password_hash: password, full_name: fullName, role: 'customer', status: 'active' }
         ])
         .select()
         .single()
@@ -153,6 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(newSession)
       localStorage.setItem('safa_custom_session', JSON.stringify(newSession))
     } catch (error) {
+      console.error('Register error:', error)
       throw error
     } finally {
       setIsLoading(false)
