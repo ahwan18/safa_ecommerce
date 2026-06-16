@@ -55,6 +55,10 @@ export async function PUT(req: NextRequest) {
       apiKey: config.apiKey,
     });
 
+    // Menggunakan fallback URL dinamis agar aman saat dideploy ke Vercel maupun local
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://safablon.my.id'
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || baseUrl
+
     const duitkuPayload = {
       merchantCode: config.merchantCode,
       paymentAmount: paymentAmount,
@@ -63,8 +67,8 @@ export async function PUT(req: NextRequest) {
       email: customerEmail || 'customer@safasablon.com',
       paymentMethod: '', 
       expiryPeriod: 1440, 
-      callbackUrl: `${process.env.NEXT_PUBLIC_API_URL || 'https://DOMAIN_NGROK_LU.ngrok-free.app'}/api/duitku`,
-      returnUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/checkout/success`,
+      callbackUrl: `${baseUrl}/api/duitku`,
+      returnUrl: `${siteUrl}/checkout/success`,
       signature: signature
     };
 
@@ -82,7 +86,7 @@ export async function PUT(req: NextRequest) {
 
     const supabase = await createClient();
     
-    // Pastikan order record sudah di-insert atau di-update status tracking-nya di DB utama Anda di sini jika diperlukan.
+    // Sinkronisasi: Update tracking status pembayaran ke tabel orders
     await supabase
       .from('orders')
       .update({
@@ -153,9 +157,10 @@ export async function POST(req: NextRequest) {
     const paymentStatus = mapDuitkuResultToPaymentStatus({ resultCode, statusCode })
     const supabase = await createClient()
     
+    // Diperbaiki: Menggunakan kolom 'total' sesuai dengan skema tabel orders lu
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id, order_number, status, payment_status, payment_reference, final_price')
+      .select('id, order_number, status, payment_status, payment_reference, total')
       .eq('order_number', merchantOrderId)
       .maybeSingle()
 
@@ -164,7 +169,9 @@ export async function POST(req: NextRequest) {
       return new Response('OK', { status: 200 })
     }
 
-    if (Number(order.final_price ?? 0) > 0 && Math.round(Number(amount)) !== Math.round(Number(order.final_price))) {
+    // Pengecekan diselaraskan menggunakan properti order.total
+    const dbTotal = Number(order.total ?? 0)
+    if (dbTotal > 0 && Math.round(Number(amount)) !== Math.round(dbTotal)) {
       console.error(`${LOG_PREFIX} Jumlah nominal bayar tidak cocok untuk order: ${merchantOrderId}`)
       return new Response('OK', { status: 200 })
     }
