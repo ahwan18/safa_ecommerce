@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase/client'
 import type { User, AuthSession } from '@/lib/types'
+import bcrypt from 'bcryptjs' // Kita pakai ini untuk verifikasi password tabel users
 
 interface AuthContextType {
   session: AuthSession
@@ -17,7 +18,6 @@ interface AuthContextType {
   isAuthenticated: boolean
   isAdmin: boolean
 
-  // OPTIONAL biar file lain gak error build
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>
   changeEmail: (newEmail: string) => Promise<void>
 }
@@ -25,30 +25,17 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 /* =========================
-   MAPPER USER SUPABASE
+   MAPPER USER FOR CUSTOM DB
 ========================= */
-function mapUser(user: any): User {
+function mapCustomUser(dbUser: any): User {
   return {
-    id: user.id,
-    email: user.email ?? '',
-    fullName:
-      user.user_metadata?.full_name ||
-      user.user_metadata?.name ||
-      user.email?.split('@')[0] ||
-      'User',
-    role: user.user_metadata?.role || 'customer',
-    status: 'active',
-    createdAt: new Date(user.created_at ?? Date.now()),
-    updatedAt: new Date(),
-  }
-}
-
-function mapSession(session: any): AuthSession {
-  return {
-    user: session?.user ? mapUser(session.user) : null,
-    isLoggedIn: !!session?.user,
-    isAdmin: session?.user?.user_metadata?.role === 'admin',
-    token: session?.access_token ?? null,
+    id: dbUser.id.toString(), // konversi serial id ke string jika tipe data di type lu string
+    email: dbUser.email,
+    fullName: dbUser.full_name || 'User',
+    role: dbUser.role || 'customer',
+    status: dbUser.status || 'active',
+    createdAt: new Date(dbUser.created_at ?? Date.now()),
+    updatedAt: new Date(dbUser.updated_at ?? Date.now()),
   }
 }
 
@@ -66,93 +53,109 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   /* =========================
-     INIT SESSION
+     INIT SESSION (Membaca dari localStorage untuk custom session)
   ========================= */
   useEffect(() => {
-    const init = async () => {
+    const init = () => {
       setIsLoading(true)
-
-      if (!isSupabaseConfigured) {
-        setIsLoading(false)
-        return
-      }
-
-      const { data } = await supabase.auth.getSession()
-
-      if (data.session) {
-        setSession(mapSession(data.session))
-      }
-
-      setIsLoading(false)
-    }
-
-    init()
-
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (session) {
-          setSession(mapSession(session))
-        } else {
-          setSession({
-            user: null,
-            isLoggedIn: false,
-            isAdmin: false,
-            token: null,
-          })
+      try {
+        const savedSession = localStorage.getItem('safa_custom_session')
+        if (savedSession) {
+          const parsed = JSON.parse(savedSession)
+          setSession(parsed)
         }
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setIsLoading(false)
       }
-    )
-
-    return () => {
-      listener.subscription.unsubscribe()
     }
+    init()
   }, [])
 
   /* =========================
-     LOGIN
+     LOGIN (DIESEKUSI KE TABEL CUSTOM)
   ========================= */
   const login = async (email: string, password: string) => {
     setIsLoading(true)
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      // 1. Ambil data dari tabel public.users berdasarkan email
+      const { data: userData, error: dbError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single()
 
-    setIsLoading(false)
+      if (dbError || !userData) {
+        throw new Error('Invalid login credentials')
+      }
 
-    if (error) throw error
-    if (data.session) setSession(mapSession(data.session))
+      // 2. Cek apakah status user aktif
+      if (userData.status !== 'active') {
+        throw new Error('Akun Anda dinonaktifkan')
+      }
+
+      // 3. Bandingkan password inputan dengan password_hash (Bcrypt) dari DB
+      const isPasswordMatch = await bcrypt.compare(password, userData.password_hash)
+      if (!isPasswordMatch) {
+        throw new Error('Invalid login credentials')
+      }
+
+      // 4. Buat objek user & session baru yang clean
+      const mappedUser = mapCustomUser(userData)
+      const newSession: AuthSession = {
+        user: mappedUser,
+        isLoggedIn: true,
+        isAdmin: mappedUser.role === 'admin',
+        token: 'custom-session-token', // Dummy token agar interface tidak error
+      }
+
+      // 5. Simpan ke state dan localStorage agar persistent saat di-refresh (Aman untuk Vercel client-side)
+      setSession(newSession)
+      localStorage.setItem('safa_custom_session', JSON.stringify(newSession))
+
+    } catch (error) {
+      setIsLoading(false)
+      throw error
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   /* =========================
-     REGISTER
+     REGISTER (OPSIONAL KE TABEL CUSTOM)
   ========================= */
-  const register = async (
-    email: string,
-    password: string,
-    fullName: string
-  ) => {
+  const register = async (email: string, password: string, fullName: string) => {
     setIsLoading(true)
+    try {
+      const salt = await bcrypt.genSalt(10)
+      const hashedPassword = await bcrypt.hash(password, salt)
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          role: 'customer',
-        },
-      },
-    })
+      const { data, error } = await supabase
+        .from('users')
+        .insert([
+          { email, password_hash: hashedPassword, full_name: fullName, role: 'customer', status: 'active' }
+        ])
+        .select()
+        .single()
 
-    setIsLoading(false)
+      if (error) throw error
 
-    if (error) throw error
+      const mappedUser = mapCustomUser(data)
+      const newSession: AuthSession = {
+        user: mappedUser,
+        isLoggedIn: true,
+        isAdmin: false,
+        token: 'custom-session-token',
+      }
 
-    // kalau auto login aktif
-    if (data.session) {
-      setSession(mapSession(data.session))
+      setSession(newSession)
+      localStorage.setItem('safa_custom_session', JSON.stringify(newSession))
+    } catch (error) {
+      throw error
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -160,22 +163,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
      GOOGLE LOGIN
   ========================= */
   const loginWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin,
-      },
-    })
-
-    if (error) throw error
+    throw new Error('Google Login tidak didukung pada custom credentials mode.')
   }
 
   /* =========================
      LOGOUT
   ========================= */
   const logout = async () => {
-    await supabase.auth.signOut()
-
+    localStorage.removeItem('safa_custom_session')
     setSession({
       user: null,
       isLoggedIn: false,
@@ -184,16 +179,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
   }
 
-  /* =========================
-     DUMMY (biar build gak error)
-  ========================= */
-  const changePassword = async () => {
-    throw new Error('Not implemented')
-  }
-
-  const changeEmail = async () => {
-    throw new Error('Not implemented')
-  }
+  const changePassword = async () => { throw new Error('Not implemented') }
+  const changeEmail = async () => { throw new Error('Not implemented') }
 
   return (
     <AuthContext.Provider

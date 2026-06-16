@@ -1,52 +1,26 @@
-const STORAGE_KEY = 'safa_user_passwords'
+import bcrypt from 'bcryptjs'
 
-const DEFAULT_PASSWORDS: Record<string, string> = {
-  'admin@screenstudio.com': 'admin123',
-  'customer@example.com': 'password123',
-  'toko.online@example.com': 'password123',
-}
-
-function readStore(): Record<string, string> {
-  if (typeof window === 'undefined') return {}
+/**
+ * Memverifikasi apakah password text biasa cocok dengan hash Bcrypt dari database
+ * @param password Input password dari form (misal: 'admin123')
+ * @param hash Password terenkripsi dari tabel database users
+ */
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
+    return await bcrypt.compare(password, hash)
   } catch {
-    return {}
+    return false
   }
 }
 
-export function getStoredPassword(email: string): string {
-  const stored = readStore()
-  return stored[email] ?? DEFAULT_PASSWORDS[email] ?? ''
-}
-
-export function setStoredPassword(email: string, password: string) {
-  const stored = readStore()
-  stored[email] = password
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
-}
-
-export function verifyPassword(email: string, password: string): boolean {
-  return getStoredPassword(email) === password
-}
-
-export function migrateStoredPassword(fromEmail: string, toEmail: string) {
-  const password = getStoredPassword(fromEmail)
-  if (!password) return
-  setStoredPassword(toEmail, password)
-  const stored = readStore()
-  delete stored[fromEmail]
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
-}
-
-const ADMIN_EMAIL_KEY = 'safa_admin_login_email'
-const DEFAULT_ADMIN_EMAIL = 'admin@screenstudio.com'
-
+// Menjaga fungsi bawaan agar tidak merusak komponen client lama yang mengimpor file ini
 export function getAdminLoginEmail(): string {
-  if (typeof window === 'undefined') return DEFAULT_ADMIN_EMAIL
-  return localStorage.getItem(ADMIN_EMAIL_KEY) ?? DEFAULT_ADMIN_EMAIL
+  if (typeof window === 'undefined') return 'admin@screenstudio.com'
+  return localStorage.getItem('safa_admin_login_email') || 'admin@screenstudio.com'
 }
 
 export function setAdminLoginEmail(email: string) {
-  localStorage.setItem(ADMIN_EMAIL_KEY, email)
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('safa_admin_login_email', email)
+  }
 }
