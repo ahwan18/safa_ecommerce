@@ -22,6 +22,7 @@ import { useShippingConfig } from '@/lib/contexts/shipping-config-context'
 import { estimateCartWeightGrams } from '@/lib/shipping/utils'
 import type { ShippingSelection } from '@/lib/shipping/types'
 import { AddressFormModal } from '@/components/address/address-form-modal'
+import { createOrder } from '@/lib/supabase/order-queries'
 
 type CheckoutStep = 'shipping' | 'design' | 'payment' | 'review'
 
@@ -150,27 +151,7 @@ export default function CheckoutPage() {
       const orderNumber = `ORD-${Date.now()}`
       const targetUserId = userId || `user-${Date.now()}`
 
-      // 1. Tembak API Terintegrasi Duitku menggunakan Method PUT
-      const response = await fetch('/api/duitku/callback', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          orderId: orderNumber,
-          orderNumber: orderNumber,
-          finalPrice: total,
-          customerEmail: user?.email || address.email || 'customer@safasablon.com',
-        }),
-      })
-
-      const paymentData = await response.json()
-
-      if (!response.ok || !paymentData.redirectUrl) {
-        throw new Error(paymentData.error || 'Gagal membuat tautan pembayaran Duitku')
-      }
-
-      // 2. Jika API Duitku sukses, buat objek state local order untuk tracker
+      // 1. Simpan order ke database agar callback Duitku bisa memperbarui statusnya.
       const newOrder: Order = {
         id: orderNumber,
         orderNumber,
@@ -191,10 +172,37 @@ export default function CheckoutPage() {
         shippingInfo: shippingSelection,
         total,
         status: 'pending',
-        paymentStatus: 'pending', // Diubah jadi unpaid sampai webhook masuk lunas
+        paymentStatus: 'pending',
         shippingAddress: address,
         createdAt: new Date(),
         updatedAt: new Date(),
+      }
+
+      const { data: savedOrder, error: orderError } = await createOrder(newOrder)
+      if (orderError) {
+        throw new Error(orderError.message || 'Gagal menyimpan pesanan')
+      }
+
+      // 2. Buat invoice pembayaran Duitku
+      const response = await fetch('/api/duitku/invoice', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderId: orderNumber,
+          orderNumber: orderNumber,
+          finalPrice: total,
+          customerEmail: user?.email || address.email || 'customer@safasablon.com',
+          customerName: address.name,
+          customerPhone: address.phone,
+        }),
+      })
+
+      const paymentData = await response.json()
+
+      if (!response.ok || !paymentData.redirectUrl) {
+        throw new Error(paymentData.error || 'Gagal membuat tautan pembayaran Duitku')
       }
 
       // Potong stock lokal sementara
@@ -205,7 +213,7 @@ export default function CheckoutPage() {
         }
       })
 
-      addOrder(newOrder)
+      addOrder(savedOrder ?? newOrder)
 
       // Kirim Notifikasi Sistem internal
       addNotification(buildOrderNotif(targetUserId, orderNumber, orderNumber))
@@ -217,8 +225,8 @@ export default function CheckoutPage() {
 
       clearCart()
 
-      // 3. Mental (Redirect) otomatis ke Portal Pembayaran Duitku Sandbox/Prod
-      window.location.href = paymentData.redirectUrl
+      // 3. Redirect otomatis ke halaman pembayaran Duitku
+      window.location.assign(paymentData.redirectUrl)
 
     } catch (error: any) {
       console.error(error)
