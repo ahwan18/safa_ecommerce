@@ -26,103 +26,89 @@ interface DuitkuCallbackPayload {
   [key: string]: any
 }
 
-const LOG_PREFIX = '[duitku-route]'
-
-// ============================================================
-// A. PUT /api/duitku -> PROSES CHECKOUT (User Klik Bayar)
-// ============================================================
 export async function PUT(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { orderId, finalPrice, customerEmail } = body;
-    const orderNumber = body.orderNumber || orderId;
+    const body = await req.json()
+    const { orderId, finalPrice, customerEmail } = body
+    const orderNumber = body.orderNumber || orderId
 
     if (!orderNumber || !finalPrice) {
-      return NextResponse.json({ error: 'Data order tidak lengkap (orderNumber/finalPrice kosong)' }, { status: 400 });
+      return NextResponse.json({ error: 'Data order tidak lengkap' }, { status: 400 })
     }
 
-    const config = getDuitkuConfig();
+    const config = getDuitkuConfig()
     if (!config) {
-      return NextResponse.json({ error: 'Konfigurasi Duitku di server .env belum lengkap' }, { status: 500 });
+      return NextResponse.json({ error: 'Konfigurasi Duitku di server belum lengkap' }, { status: 500 })
     }
 
-    const paymentAmount = Math.round(Number(finalPrice));
+    const paymentAmount = Math.round(Number(finalPrice))
 
     const signature = generateDuitkuRequestSignature({
       merchantCode: config.merchantCode,
-      merchantOrderId: orderNumber,
+      merchantOrderId: String(orderNumber),
       paymentAmount: paymentAmount,
       apiKey: config.apiKey,
-    });
+    })
 
-    // Menggunakan fallback URL dinamis agar aman saat dideploy ke Vercel maupun local
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://safablon.my.id'
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://www.safablon.my.id'
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || baseUrl
 
     const duitkuPayload = {
       merchantCode: config.merchantCode,
       paymentAmount: paymentAmount,
-      merchantOrderId: orderNumber,
+      merchantOrderId: String(orderNumber),
       productDetails: `Pembayaran Order #${orderNumber} - Safa Sablon`,
       email: customerEmail || 'customer@safasablon.com',
-      paymentMethod: '', 
-      expiryPeriod: 1440, 
+      paymentMethod: '',
+      expiryPeriod: 1440,
       callbackUrl: `${baseUrl}/api/duitku/callback`,
       returnUrl: `${siteUrl}/checkout/success`,
       signature: signature
-    };
+    }
 
     const duitkuResponse = await fetch('https://sandbox.duitku.com/webapi/api/merchant/v2/inquiry', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(duitkuPayload),
-    });
+    })
 
-    const duitkuData = await duitkuResponse.json();
+    const duitkuData = await duitkuResponse.json()
 
     if (!duitkuData.paymentUrl) {
-      return NextResponse.json({ error: 'Gagal membuat invoice di Duitku', details: duitkuData }, { status: 500 });
+      return NextResponse.json({ error: 'Gagal membuat invoice di Duitku', details: duitkuData }, { status: 500 })
     }
 
-    const supabase = await createClient();
+    const supabase = await createClient()
     
-    // Sinkronisasi: Update tracking status pembayaran ke tabel orders
     await supabase
       .from('orders')
       .update({
         payment_provider: 'duitku',
-        payment_reference: duitkuData.reference,
-        payment_status: 'pending' 
+        payment_reference: duitkuData.reference || null,
+        payment_status: 'pending'
       })
-      .eq('order_number', orderNumber);
+      .eq('order_number', orderNumber)
 
-    return NextResponse.json({ redirectUrl: duitkuData.paymentUrl });
+    return NextResponse.json({ redirectUrl: duitkuData.paymentUrl })
 
   } catch (error: any) {
-    console.error('Error Checkout:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('Error Checkout:', error)
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }
 
-// ============================================================
-// B. POST /api/duitku -> WEBHOOK CALLBACK
-// ============================================================
 export async function POST(req: NextRequest) {
   let rawBody: string | null = null
   let payload: DuitkuCallbackPayload | null = null
 
   try {
+    rawBody = await req.text()
+    if (!rawBody) return new Response('Empty body', { status: 400 })
     try {
-      rawBody = await req.text()
-      if (!rawBody) return new Response('Empty body', { status: 400 })
-      try {
-        payload = JSON.parse(rawBody) as DuitkuCallbackPayload
-      } catch {
-        const params = new URLSearchParams(rawBody)
-        payload = Object.fromEntries(params.entries()) as DuitkuCallbackPayload
-      }
-    } catch (err) {
-      return new Response('Invalid body', { status: 400 })
+      payload = JSON.parse(rawBody) as DuitkuCallbackPayload
+    } catch {
+      const params = new URLSearchParams(rawBody)
+      payload = Object.fromEntries(params.entries()) as DuitkuCallbackPayload
     }
 
     const data = payload as DuitkuCallbackPayload
@@ -157,7 +143,6 @@ export async function POST(req: NextRequest) {
     const paymentStatus = mapDuitkuResultToPaymentStatus({ resultCode, statusCode })
     const supabase = await createClient()
     
-    // Diperbaiki: Menggunakan kolom 'total' sesuai dengan skema tabel orders lu
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .select('id, order_number, status, payment_status, payment_reference, total')
@@ -165,14 +150,11 @@ export async function POST(req: NextRequest) {
       .maybeSingle()
 
     if (orderError || !order) {
-      console.error(`${LOG_PREFIX} Order tidak ditemukan di database: ${merchantOrderId}`)
       return new Response('OK', { status: 200 })
     }
 
-    // Pengecekan diselaraskan menggunakan properti order.total
     const dbTotal = Number(order.total ?? 0)
     if (dbTotal > 0 && Math.round(Number(amount)) !== Math.round(dbTotal)) {
-      console.error(`${LOG_PREFIX} Jumlah nominal bayar tidak cocok untuk order: ${merchantOrderId}`)
       return new Response('OK', { status: 200 })
     }
 
@@ -220,7 +202,6 @@ export async function POST(req: NextRequest) {
 
     await supabase.from('orders').update(orderUpdate).eq('id', order.id)
 
-    console.log(`${LOG_PREFIX} Database Berhasil Diupdate Otomatis via Webhook!`)
     return new Response('OK', { status: 200 })
 
   } catch (err) {

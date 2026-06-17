@@ -17,7 +17,7 @@ export function getDuitkuConfig(): DuitkuConfig | null {
 }
 
 /**
- * 1. UNTUK CHECKOUT: Menghasilkan signature SHA256 untuk Request Invoice ke Duitku.
+ * 1. UNTUK CHECKOUT: Menghasilkan signature SHA256 untuk Request Invoice ke Duitku (API V2).
  * Rumus resmi: sha256(merchantCode + merchantOrderId + paymentAmount + apiKey)
  */
 export function generateDuitkuRequestSignature(params: {
@@ -28,7 +28,7 @@ export function generateDuitkuRequestSignature(params: {
 }): string {
   const { merchantCode, merchantOrderId, paymentAmount, apiKey } = params
   const raw = `${merchantCode}${merchantOrderId}${paymentAmount}${apiKey}`
-  return createHash('md5').update(raw, 'utf8').digest('hex')
+  return createHash('sha256').update(raw, 'utf8').digest('hex')
 }
 
 /**
