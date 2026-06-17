@@ -13,7 +13,6 @@ import {
   Check,
   CreditCard,
   ExternalLink,
-  Info,
   Loader2,
   MapPin,
   MessageCircle,

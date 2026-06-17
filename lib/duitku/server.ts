@@ -1,39 +1,48 @@
-import { createHash } from 'crypto'
+import { createHmac } from 'crypto'
 
 export interface DuitkuConfig {
   merchantCode: string
   apiKey: string
+  environment: 'sandbox' | 'production'
 }
 
 export function getDuitkuConfig(): DuitkuConfig | null {
   const merchantCode = process.env.DUITKU_MERCHANT_CODE
   const apiKey = process.env.DUITKU_API_KEY
+  const environment = process.env.DUITKU_ENVIRONMENT === 'production' ? 'production' : 'sandbox'
 
   if (!merchantCode || !apiKey) {
     return null
   }
 
-  return { merchantCode, apiKey }
+  return { merchantCode, apiKey, environment }
+}
+
+export function getDuitkuCreateInvoiceUrl(environment: DuitkuConfig['environment']): string {
+  if (process.env.DUITKU_CREATE_INVOICE_URL) {
+    return process.env.DUITKU_CREATE_INVOICE_URL
+  }
+
+  return environment === 'production'
+    ? 'https://api-prod.duitku.com/api/merchant/createInvoice'
+    : 'https://api-sandbox.duitku.com/api/merchant/createInvoice'
 }
 
 /**
- * 1. UNTUK CHECKOUT: Menghasilkan signature SHA256 untuk Request Invoice ke Duitku (API V2).
- * Rumus resmi: sha256(merchantCode + merchantOrderId + paymentAmount + apiKey)
+ * UNTUK CREATE INVOICE POP: HMAC_SHA256(merchantCode + timestamp, apiKey).
  */
 export function generateDuitkuRequestSignature(params: {
   merchantCode: string
-  merchantOrderId: string
-  paymentAmount: number
+  timestamp: string
   apiKey: string
 }): string {
-  const { merchantCode, merchantOrderId, paymentAmount, apiKey } = params
-  const raw = `${merchantCode}${merchantOrderId}${paymentAmount}${apiKey}`
-  return createHash('sha256').update(raw, 'utf8').digest('hex')
+  const { merchantCode, timestamp, apiKey } = params
+  const raw = `${merchantCode}${timestamp}`
+  return createHmac('sha256', apiKey).update(raw, 'utf8').digest('hex')
 }
 
 /**
- * 2. UNTUK WEBHOOK: Menghasilkan signature MD5 untuk Callback dari Duitku.
- * Rumus resmi: md5(merchantCode + merchantOrderId + amount + apiKey)
+ * UNTUK CALLBACK POP: HMAC_SHA256(merchantCode + amount + merchantOrderId, apiKey).
  */
 export function generateDuitkuSignature(params: {
   merchantCode: string
@@ -42,8 +51,8 @@ export function generateDuitkuSignature(params: {
   apiKey: string
 }): string {
   const { merchantCode, merchantOrderId, amount, apiKey } = params
-  const raw = `${merchantCode}${merchantOrderId}${amount}${apiKey}`
-  return createHash('md5').update(raw, 'utf8').digest('hex')
+  const raw = `${merchantCode}${amount}${merchantOrderId}`
+  return createHmac('sha256', apiKey).update(raw, 'utf8').digest('hex')
 }
 
 export function verifyDuitkuSignature(params: {
