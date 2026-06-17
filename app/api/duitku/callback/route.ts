@@ -26,54 +26,24 @@ interface DuitkuCallbackPayload {
   [key: string]: any
 }
 
-// Fungsi pembantu untuk ngerender halaman sukses instan biar ga kena 404 rute
-function renderMockSuccessHTML(orderNumber: string) {
-  return new NextResponse(
-    `<html>
-      <head>
-        <title>Pembayaran Berhasil</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-          .card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); text-align: center; max-width: 400px; width: 90%; }
-          .icon { width: 72px; height: 72px; background: #e6f7ed; color: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 36px; margin: 0 auto 24px; }
-          h2 { color: #111827; margin: 0 0 8px; font-size: 22px; }
-          p { color: #6b7280; font-size: 14px; margin: 0 0 24px; }
-          .btn { display: inline-block; background: #111827; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 500; transition: background 0.2s; }
-          .btn:hover { background: #1f2937; }
-        </style>
-      </head>
-      <body>
-        <div class="card">
-          <div class="icon">✓</div>
-          <h2>Pembayaran Berhasil!</h2>
-          <p>Terima kasih, pembayaran untuk Order #${orderNumber} telah diterima dan sedang diproses.</p>
-          <a href="/" class="btn">Kembali ke Beranda</a>
-        </div>
-      </body>
-    </html>`,
-    { headers: { 'Content-Type': 'text/html' } }
-  )
-}
-
 export async function PUT(req: NextRequest) {
-  let orderNumberForFallback = 'Safa-Sablon'
   try {
     const body = await req.json()
     const { orderId, finalPrice, customerEmail } = body
     const orderNumber = body.orderNumber || orderId
-    if (orderNumber) orderNumberForFallback = String(orderNumber)
 
     if (!orderNumber || !finalPrice) {
-      return renderMockSuccessHTML(orderNumberForFallback)
+      return NextResponse.json({ error: 'Data order tidak lengkap' }, { status: 400 })
     }
 
     const config = getDuitkuConfig()
     if (!config) {
-      return renderMockSuccessHTML(orderNumberForFallback)
+      return NextResponse.json({ error: 'Kredensial Duitku .env belum dipasang di Vercel' }, { status: 500 })
     }
 
     const paymentAmount = Math.round(Number(finalPrice))
+
+    // Pembuatan signature SHA256 Duitku resmi
     const signature = generateDuitkuRequestSignature({
       merchantCode: config.merchantCode,
       merchantOrderId: String(orderNumber),
@@ -84,36 +54,40 @@ export async function PUT(req: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://www.safablon.my.id'
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || baseUrl
 
+    // Payload wajib sesuai dokumentasi Duitku Passport V2
     const duitkuPayload = {
       merchantCode: config.merchantCode,
       paymentAmount: paymentAmount,
       merchantOrderId: String(orderNumber),
       productDetails: `Pembayaran Order #${orderNumber} - Safa Sablon`,
       email: customerEmail || 'customer@safasablon.com',
-      paymentMethod: '',
+      paymentMethod: '', 
       expiryPeriod: 1440,
       callbackUrl: `${baseUrl}/api/duitku/callback`,
       returnUrl: `${siteUrl}/checkout/success`,
       signature: signature
     }
 
-    let duitkuData: any = null
-    try {
-      const duitkuResponse = await fetch('https://sandbox.duitku.com/passport/v2/merchant/invoice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(duitkuPayload),
-      })
-      duitkuData = await duitkuResponse.json()
-    } catch (fetchErr) {
-      return renderMockSuccessHTML(orderNumberForFallback)
+    // Endpoint resmi Sandbox Passport V2 Invoice
+    const duitkuResponse = await fetch('https://sandbox.duitku.com/passport/v2/merchant/invoice', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(duitkuPayload),
+    })
+
+    if (!duitkuResponse.ok) {
+      const errorText = await duitkuResponse.text()
+      return NextResponse.json({ error: 'Duitku menolak request API', details: errorText }, { status: 500 })
     }
 
+    const duitkuData = await duitkuResponse.json()
+
+    // Jika invoice gagal dibuat oleh Duitku (misal karena ID duplikat)
     if (!duitkuData || !duitkuData.paymentUrl) {
-      // JIKA DUITKU EROR, LANGSUNG TAMPILIN HTML SUKSES DUMMY BIAR AMAN PRESENTASI
-      return renderMockSuccessHTML(orderNumberForFallback)
+      return NextResponse.json({ error: 'Gagal mendapatkan paymentUrl dari Duitku', details: duitkuData }, { status: 500 })
     }
 
+    // Sinkronisasi status awal ke Supabase
     try {
       const supabase = await createClient()
       await supabase
@@ -124,15 +98,15 @@ export async function PUT(req: NextRequest) {
           payment_status: 'pending'
         })
         .eq('order_number', orderNumber)
-    } catch (dbErr) {
-      console.error(dbErr)
+    } catch (dbError) {
+      console.error('Gagal update tabel orders di Supabase:', dbError)
     }
 
+    // Mengembalikan objek JSON murni berisi url pengalihan pembayaran resmi
     return NextResponse.json({ redirectUrl: duitkuData.paymentUrl })
 
   } catch (error: any) {
-    // SECURITY NET: Jika ada crash total apa pun, render HTML Sukses langsung ke layar pembeli
-    return renderMockSuccessHTML(orderNumberForFallback)
+    return NextResponse.json({ error: 'Internal Server Error', message: error.message }, { status: 500 })
   }
 }
 
@@ -249,5 +223,5 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-  return NextResponse.json({ success: false, message: 'Method not allowed' }, { status: 405, headers: { Allow: 'POST, PUT' } })
+  return NextResponse.json({ success: false, message: 'Method not allowed' }, { status: 405 })
 }
