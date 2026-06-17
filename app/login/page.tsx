@@ -157,7 +157,7 @@ export default function LoginPage() {
                   />
                 </svg>
                 {/* {googleLoading ? 'Menghubungkan...' : 'Masuk dengan Google'} */}
-              {/* </Button> */} */
+              {/* </Button> */} 
             </div>
 
             <div className="mt-6 pt-6 border-t border-border">
